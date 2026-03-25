@@ -122,24 +122,29 @@ export function SubmissionComparison({ submissions, boq_template, tenderId }: Su
     URL.revokeObjectURL(url);
   }, [submissions, boq_template, ratesByVendor]);
 
-  /** Run AI scoring */
+  /** Run AI scoring + auto-populate rate database */
   const handleRunScoring = useCallback(async () => {
     setScoring(true);
     setScoringError(null);
     setScoringDone(false);
 
     try {
-      const res = await fetch(`/api/tenders/${tenderId}/score`, {
+      // Step 1: Run AI scoring
+      const scoreRes = await fetch(`/api/tenders/${tenderId}/score`, {
         method: 'POST',
       });
-      const json = await res.json() as { success: boolean; error?: string };
-      if (!json.success) {
-        setScoringError(json.error ?? 'Scoring failed');
-      } else {
-        setScoringDone(true);
-        // Reload page to show updated scores
-        window.location.reload();
+      const scoreJson = await scoreRes.json() as { success: boolean; error?: string };
+      if (!scoreJson.success) {
+        setScoringError(scoreJson.error ?? 'Scoring failed');
+        setScoring(false);
+        return;
       }
+
+      // Step 2: Auto-populate rate database
+      await fetch(`/api/tenders/${tenderId}/rates`, { method: 'POST' });
+
+      setScoringDone(true);
+      window.location.reload();
     } catch (err) {
       setScoringError(err instanceof Error ? err.message : 'Unexpected error');
     } finally {
