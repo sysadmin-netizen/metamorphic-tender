@@ -9,7 +9,7 @@ import type {
   MaterialOption,
   VendorTier,
 } from '@/lib/types/database';
-import { SubmissionDetailActions } from './actions';
+import { SubmissionDetailActions, type PdfData } from './actions';
 
 /* ---------------------------------------------------------------
    Helpers
@@ -98,11 +98,50 @@ export default async function SubmissionDetailPage({
     boqTemplate.map((item) => [item.code, item]),
   );
 
+  // Build PDF data for the download button
+  const pdfData: PdfData = {
+    packageCode: tender.package_code,
+    packageName: tender.package_name,
+    projectName: tender.project_name,
+    submissionDate: formatGST(submission.submitted_at),
+    reference: submission.id.slice(0, 8).toUpperCase(),
+    vendor: {
+      company: vendor.company_name,
+      tradeLicence: vendor.trade_licence_number ?? '',
+      contact: vendor.contact_name,
+      email: vendor.email ?? '',
+      whatsapp: vendor.whatsapp ?? '',
+      tier: tierLabel(vendor.tier as VendorTier),
+    },
+    boq: boqData.map((item) => {
+      const tpl = templateLookup.get(item.code);
+      return {
+        code: item.code,
+        description: tpl?.description ?? item.code,
+        unit: tpl?.unit ?? '',
+        qty: item.quantity ?? tpl?.quantity ?? 0,
+        rate: formatAED(item.rate),
+        total: formatAED(item.total),
+      };
+    }),
+    totalAed: formatAED(submission.total_quote_aed),
+    materialOption: materialLabel(submission.material_option as MaterialOption),
+    mobilisationDate: submission.mobilisation_date ? formatDateOnly(submission.mobilisation_date) : 'N/A',
+    crewSize: submission.crew_size ?? 0,
+    metaforgeConfirmed: submission.metaforge_confirmed,
+    insuranceConfirmed: submission.insurance_confirmed,
+    terms: commercialEntries.map(([key, val]) => ({
+      key: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+      value: String(val),
+    })),
+  };
+
   return (
     <>
       <SubmissionDetailActions
         tenderId={tenderId}
         pdfFilename={`Submission-${tender.package_code}-${vendor.company_name.replace(/[^a-zA-Z0-9]+/g, '-')}-${submission.id.slice(0, 8).toUpperCase()}`}
+        pdfData={pdfData}
       />
 
       {/* ---- Print-ready document ---- */}
