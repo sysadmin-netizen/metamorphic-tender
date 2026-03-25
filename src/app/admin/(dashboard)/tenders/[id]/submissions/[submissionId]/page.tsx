@@ -100,7 +100,7 @@ export default async function SubmissionDetailPage({
 
   return (
     <>
-      <SubmissionDetailActions tenderId={tenderId} />
+      <SubmissionDetailActions tenderId={tenderId} submissionId={submissionId} />
 
       {/* ---- Print-ready document ---- */}
       <div className="submission-document mx-auto max-w-[820px] bg-white text-stone-900 shadow-xl print:shadow-none print:max-w-none print:mx-0">
