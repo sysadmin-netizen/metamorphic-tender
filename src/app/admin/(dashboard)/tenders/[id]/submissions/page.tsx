@@ -24,10 +24,10 @@ export default async function TenderSubmissionsPage({
     notFound();
   }
 
-  // Fetch all submissions for this tender
+  // Fetch all submissions for this tender (including score fields)
   const { data: submissions } = await supabase
     .from('submissions')
-    .select('id, vendor_id, boq_data, total_quote_aed, material_option, submitted_at')
+    .select('id, vendor_id, boq_data, total_quote_aed, material_option, submitted_at, metaforge_confirmed, insurance_confirmed, price_score, quality_score, tier_score, composite_score')
     .eq('tender_config_id', id)
     .order('total_quote_aed', { ascending: true });
 
@@ -44,16 +44,61 @@ export default async function TenderSubmissionsPage({
     }
   }
 
-  // Shape data for the comparison component
-  const comparisonEntries = (submissions ?? []).map((sub) => ({
-    id: sub.id,
-    vendor_id: sub.vendor_id,
-    vendor_name: vendorNameMap.get(sub.vendor_id) ?? sub.vendor_id.slice(0, 8),
-    boq_data: sub.boq_data as BoqSubmissionItemJson[],
-    total_quote_aed: sub.total_quote_aed,
-    material_option: sub.material_option,
-    compliance_flags: [] as string[],
-  }));
+  // Compute compliance flags and shape data for the comparison component
+  const allTotals = (submissions ?? []).map((s) => s.total_quote_aed);
+  const sortedTotals = [...allTotals].sort((a, b) => a - b);
+  const medianTotal = sortedTotals.length > 0
+    ? sortedTotals.length % 2 === 0
+      ? (sortedTotals[sortedTotals.length / 2 - 1] + sortedTotals[sortedTotals.length / 2]) / 2
+      : sortedTotals[Math.floor(sortedTotals.length / 2)]
+    : 0;
+
+  const comparisonEntries = (submissions ?? []).map((sub) => {
+    const flags: string[] = [];
+
+    // MetaForge check
+    if (!sub.metaforge_confirmed) {
+      flags.push('MetaForge Not Confirmed');
+    }
+
+    // Insurance check
+    if (!sub.insurance_confirmed) {
+      flags.push('Insurance Not Confirmed');
+    }
+
+    // Zero-rate BOQ items
+    const boqItems = sub.boq_data as BoqSubmissionItemJson[];
+    const zeroRateCodes: string[] = [];
+    for (const item of boqItems) {
+      if (item.rate === 0) {
+        zeroRateCodes.push(item.code);
+      }
+    }
+    if (zeroRateCodes.length > 0) {
+      flags.push(`Zero Rates: ${zeroRateCodes.join(', ')}`);
+    }
+
+    // Above market rate (>30% above median)
+    if (medianTotal > 0 && sub.total_quote_aed > medianTotal * 1.3) {
+      flags.push('Above Market Rate');
+    }
+
+    return {
+      id: sub.id,
+      vendor_id: sub.vendor_id,
+      vendor_name: vendorNameMap.get(sub.vendor_id) ?? sub.vendor_id.slice(0, 8),
+      boq_data: boqItems,
+      total_quote_aed: sub.total_quote_aed,
+      material_option: sub.material_option,
+      compliance_flags: flags,
+      scores: {
+        price_score: sub.price_score,
+        quality_score: sub.quality_score,
+        tier_score: sub.tier_score,
+        composite_score: sub.composite_score,
+      },
+    };
+  });
 
   const boqTemplate = tender.boq_template as BoqTemplateJson;
 
@@ -84,6 +129,7 @@ export default async function TenderSubmissionsPage({
       <SubmissionComparison
         submissions={comparisonEntries}
         boq_template={boqTemplate}
+        tenderId={id}
       />
     </div>
   );

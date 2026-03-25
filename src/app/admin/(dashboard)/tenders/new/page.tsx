@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SchemaEditor } from '@/components/admin/schema-editor';
 import { BoqEditor } from '@/components/admin/boq-editor';
 import { CommercialTermsEditor } from '@/components/admin/commercial-terms-editor';
+import { PACKAGE_PRESETS, type PackagePreset } from '@/lib/package-presets';
 import type { BoqLineItem, FormSchemaJson } from '@/types';
 
 /* ---------------------------------------------------------------
@@ -51,8 +52,14 @@ interface ApiResponse {
   error?: string;
 }
 
+/** Dropdown option value: preset code or 'custom' */
+type PackageSelection = string;
+
 export default function NewTenderPage() {
   const router = useRouter();
+
+  // Package selection
+  const [selectedPackage, setSelectedPackage] = useState<PackageSelection>('');
 
   // Basic fields
   const [packageCode, setPackageCode] = useState('');
@@ -80,6 +87,46 @@ export default function NewTenderPage() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /** When a package preset is selected, auto-fill all relevant fields */
+  const handlePackageSelect = useCallback((value: PackageSelection) => {
+    setSelectedPackage(value);
+
+    if (value === 'custom' || value === '') {
+      // Reset to empty state for custom package
+      setPackageCode('');
+      setPackageName('');
+      setJobSequence('');
+      setDependencies('');
+      setMobilisationRequirement('');
+      setScopeItemsText('');
+      setBoqQtyEditable(false);
+      setBoqTemplate([{ code: 'A-001', description: '', unit: '', quantity: 0 }]);
+      return;
+    }
+
+    const preset: PackagePreset | undefined = PACKAGE_PRESETS.find((p) => p.code === value);
+    if (!preset) return;
+
+    setPackageCode(preset.code);
+    setPackageName(preset.name);
+    setJobSequence(preset.job_sequence);
+    setDependencies(preset.dependencies);
+    setMobilisationRequirement(preset.mobilisation_requirement);
+    setScopeItemsText(preset.scope_items.join('\n'));
+    setBoqQtyEditable(preset.boq_qty_editable);
+
+    // Convert preset BOQ to BoqLineItem[]
+    const boqItems: BoqLineItem[] = preset.default_boq.map((item) => ({
+      code: item.code,
+      description: item.description,
+      unit: item.unit,
+      quantity: item.quantity,
+    }));
+    setBoqTemplate(boqItems);
+  }, []);
+
+  const isPresetSelected = selectedPackage !== '' && selectedPackage !== 'custom';
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -153,6 +200,34 @@ export default function NewTenderPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Package Selection */}
+        <section className="space-y-4 rounded-lg border border-amber-500/30 bg-stone-800/50 p-6">
+          <h2 className="text-lg font-semibold text-amber-400">Package Selection</h2>
+          <p className="text-sm text-stone-400">
+            Select a predefined package to auto-fill all fields, or choose Custom for a blank template.
+          </p>
+
+          <div>
+            <label htmlFor="package_select" className="block text-sm font-medium text-stone-400 mb-1">
+              Package
+            </label>
+            <select
+              id="package_select"
+              value={selectedPackage}
+              onChange={(e) => handlePackageSelect(e.target.value)}
+              className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm text-stone-200 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+            >
+              <option value="">-- Select a Package --</option>
+              {PACKAGE_PRESETS.map((preset) => (
+                <option key={preset.code} value={preset.code}>
+                  {preset.code} &mdash; {preset.name}
+                </option>
+              ))}
+              <option value="custom">Custom Package</option>
+            </select>
+          </div>
+        </section>
+
         {/* Basic details */}
         <section className="space-y-4 rounded-lg border border-stone-700 bg-stone-800/50 p-6">
           <h2 className="text-lg font-semibold text-stone-200">Basic Details</h2>
@@ -168,9 +243,17 @@ export default function NewTenderPage() {
                 required
                 value={packageCode}
                 onChange={(e) => setPackageCode(e.target.value)}
-                className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm text-stone-200 font-mono placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                readOnly={isPresetSelected}
+                className={`w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm font-mono placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 ${
+                  isPresetSelected
+                    ? 'text-amber-400 bg-stone-800 cursor-not-allowed'
+                    : 'text-stone-200'
+                }`}
                 placeholder="PKG-001"
               />
+              {isPresetSelected && (
+                <p className="mt-1 text-xs text-stone-500">Locked to preset package code</p>
+              )}
             </div>
             <div>
               <label htmlFor="closing_deadline" className="block text-sm font-medium text-stone-400 mb-1">
@@ -213,7 +296,7 @@ export default function NewTenderPage() {
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
               className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm text-stone-200 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-              placeholder="Project Alpha"
+              placeholder="META 31 — Royal Gujarat"
             />
           </div>
         </section>

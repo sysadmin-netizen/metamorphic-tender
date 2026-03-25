@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { formatGST } from '@/lib/date';
 import { StatsBar } from '@/components/admin/stats-bar';
 import { TenderCard } from '@/components/admin/tender-card';
+import { ReminderChecker } from '@/components/admin/reminder-checker';
 import type { StatItem, TenderCardData } from '@/types';
 
 export default async function AdminDashboardPage() {
@@ -122,6 +123,9 @@ export default async function AdminDashboardPage() {
 
       {/* Stats */}
       <StatsBar stats={stats} />
+
+      {/* Reminder Checker */}
+      <ReminderChecker />
 
       {/* Active Tender Cards */}
       <section>
