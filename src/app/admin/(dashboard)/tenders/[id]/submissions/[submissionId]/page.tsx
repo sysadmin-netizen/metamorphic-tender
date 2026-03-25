@@ -9,7 +9,7 @@ import type {
   MaterialOption,
   VendorTier,
 } from '@/lib/types/database';
-import { SubmissionDetailActions, type PdfData } from './actions';
+import { SubmissionDetailActions } from './actions';
 
 /* ---------------------------------------------------------------
    Helpers
@@ -98,50 +98,11 @@ export default async function SubmissionDetailPage({
     boqTemplate.map((item) => [item.code, item]),
   );
 
-  // Build PDF data for the download button
-  const pdfData: PdfData = {
-    packageCode: tender.package_code,
-    packageName: tender.package_name,
-    projectName: tender.project_name,
-    submissionDate: formatGST(submission.submitted_at),
-    reference: submission.id.slice(0, 8).toUpperCase(),
-    vendor: {
-      company: vendor.company_name,
-      tradeLicence: vendor.trade_licence_number ?? '',
-      contact: vendor.contact_name,
-      email: vendor.email ?? '',
-      whatsapp: vendor.whatsapp ?? '',
-      tier: tierLabel(vendor.tier as VendorTier),
-    },
-    boq: boqData.map((item) => {
-      const tpl = templateLookup.get(item.code);
-      return {
-        code: item.code,
-        description: tpl?.description ?? item.code,
-        unit: tpl?.unit ?? '',
-        qty: item.quantity ?? tpl?.quantity ?? 0,
-        rate: formatAED(item.rate),
-        total: formatAED(item.total),
-      };
-    }),
-    totalAed: formatAED(submission.total_quote_aed),
-    materialOption: materialLabel(submission.material_option as MaterialOption),
-    mobilisationDate: submission.mobilisation_date ? formatDateOnly(submission.mobilisation_date) : 'N/A',
-    crewSize: submission.crew_size ?? 0,
-    metaforgeConfirmed: submission.metaforge_confirmed,
-    insuranceConfirmed: submission.insurance_confirmed,
-    terms: commercialEntries.map(([key, val]) => ({
-      key: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-      value: String(val),
-    })),
-  };
-
   return (
     <>
       <SubmissionDetailActions
         tenderId={tenderId}
         pdfFilename={`Submission-${tender.package_code}-${vendor.company_name.replace(/[^a-zA-Z0-9]+/g, '-')}-${submission.id.slice(0, 8).toUpperCase()}`}
-        pdfData={pdfData}
       />
 
       {/* ---- Print-ready document ---- */}
@@ -407,67 +368,24 @@ export default async function SubmissionDetailPage({
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            @page {
-              size: A4;
-              margin: 10mm;
-            }
+            @page { size: A4; margin: 0; }
             @media print {
-              /* Remove browser header/footer (URL, date, page numbers) */
-              @page { margin: 10mm; }
+              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+              html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
 
-              /* Hide ALL admin chrome — sidebar, top bar, action buttons */
-              aside, nav, header,
-              .admin-sidebar,
-              .submission-actions-bar,
-              [class*="fixed top-0"],
-              [class*="lg:flex lg:flex-col lg:fixed"] {
-                display: none !important;
-                visibility: hidden !important;
-                height: 0 !important;
-                overflow: hidden !important;
-              }
-
-              /* Reset layout — remove sidebar margin, padding */
-              html, body {
-                background: white !important;
-                color: black !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-              }
-              main {
-                margin-left: 0 !important;
-                padding: 0 !important;
-                min-height: auto !important;
-              }
+              /* Hide everything except the document */
+              aside, .admin-sidebar, .submission-actions-bar,
+              div[class*="fixed top-0"], div[class*="lg\\:fixed"] { display: none !important; }
+              main { margin: 0 !important; padding: 0 !important; min-height: auto !important; }
               .min-h-screen { min-height: auto !important; }
 
-              /* Document fits on page */
+              /* The document prints as-is */
               .submission-document {
                 max-width: 100% !important;
-                width: 100% !important;
                 margin: 0 !important;
-                padding: 20px !important;
                 box-shadow: none !important;
-                border-radius: 0 !important;
                 border: none !important;
-                font-size: 11px !important;
               }
-              .submission-document h2 { font-size: 14px !important; }
-              .submission-document h3 { font-size: 12px !important; }
-              .submission-document table { font-size: 10px !important; }
-              .submission-document p, .submission-document li { font-size: 10px !important; }
-
-              /* Ensure backgrounds print */
-              tr { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-              table { page-break-inside: auto; }
-              tr { page-break-inside: avoid; }
-              thead { display: table-header-group; }
-
-              /* Compact spacing for single page */
-              .submission-document > div { margin-bottom: 8px !important; padding: 8px !important; }
-              .submission-document .grid { gap: 4px !important; }
             }
           `,
         }}

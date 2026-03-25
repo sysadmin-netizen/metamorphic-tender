@@ -14,12 +14,12 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.100.0
         version: 2.100.0
+      html2canvas-pro:
+        specifier: ^2.0.2
+        version: 2.0.2
       jspdf:
         specifier: ^4.2.1
         version: 4.2.1
-      jspdf-autotable:
-        specifier: ^5.0.7
-        version: 5.0.7(jspdf@4.2.1)
       next:
         specifier: 16.2.1
         version: 16.2.1(@babel/core@7.29.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -1325,6 +1325,10 @@ packages:
   hermes-parser@0.25.1:
     resolution: {integrity: sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA==}
 
+  html2canvas-pro@2.0.2:
+    resolution: {integrity: sha512-9G/t0XgCZWonLwL0JwI7su6NdbOPUY7Ur4Ihpp8+XMaW9ibA2nDXF181Jr6tm94k8lX6sthpaXB3XqEnsMd5Cw==}
+    engines: {node: '>=16.0.0'}
+
   html2canvas@1.4.1:
     resolution: {integrity: sha512-fPU6BHNpsyIhr8yyMpTLLxAbkaK8ArIBcmZIRiBLiDhjeqvXolaEmDGmELFuX9I4xDcaKKcJl+TKZLqruBbmWA==}
     engines: {node: '>=8.0.0'}
@@ -1502,11 +1506,6 @@ packages:
     resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
     engines: {node: '>=6'}
     hasBin: true
-
-  jspdf-autotable@5.0.7:
-    resolution: {integrity: sha512-2wr7H6liNDBYNwt25hMQwXkEWFOEopgKIvR1Eukuw6Zmprm/ZcnmLTQEjW7Xx3FCbD3v7pflLcnMAv/h1jFDQw==}
-    peerDependencies:
-      jspdf: ^2 || ^3 || ^4
 
   jspdf@4.2.1:
     resolution: {integrity: sha512-YyAXyvnmjTbR4bHQRLzex3CuINCDlQnBqoSYyjJwTP2x9jDLuKDzy7aKUl0hgx3uhcl7xzg32agn5vlie6HIlQ==}
@@ -2872,8 +2871,7 @@ snapshots:
 
   balanced-match@4.0.4: {}
 
-  base64-arraybuffer@1.0.2:
-    optional: true
+  base64-arraybuffer@1.0.2: {}
 
   baseline-browser-mapping@2.10.10: {}
 
@@ -2962,7 +2960,6 @@ snapshots:
   css-line-break@2.1.0:
     dependencies:
       utrie: 1.0.2
-    optional: true
 
   csstype@3.2.3: {}
 
@@ -3493,6 +3490,11 @@ snapshots:
     dependencies:
       hermes-estree: 0.25.1
 
+  html2canvas-pro@2.0.2:
+    dependencies:
+      css-line-break: 2.1.0
+      text-segmentation: 1.0.3
+
   html2canvas@1.4.1:
     dependencies:
       css-line-break: 2.1.0
@@ -3666,10 +3668,6 @@ snapshots:
       minimist: 1.2.8
 
   json5@2.2.3: {}
-
-  jspdf-autotable@5.0.7(jspdf@4.2.1):
-    dependencies:
-      jspdf: 4.2.1
 
   jspdf@4.2.1:
     dependencies:
@@ -4209,7 +4207,6 @@ snapshots:
   text-segmentation@1.0.3:
     dependencies:
       utrie: 1.0.2
-    optional: true
 
   tinyglobby@0.2.15:
     dependencies:
@@ -4329,7 +4326,6 @@ snapshots:
   utrie@1.0.2:
     dependencies:
       base64-arraybuffer: 1.0.2
-    optional: true
 
   which-boxed-primitive@1.1.1:
     dependencies:

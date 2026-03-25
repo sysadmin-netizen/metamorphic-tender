@@ -2,214 +2,66 @@
 
 import Link from 'next/link';
 import { useCallback, useState } from 'react';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-
-/* ---------------------------------------------------------------
-   Types for the data passed from the server component
-   --------------------------------------------------------------- */
-
-export interface PdfData {
-  packageCode: string;
-  packageName: string;
-  projectName: string;
-  submissionDate: string;
-  reference: string;
-  vendor: {
-    company: string;
-    tradeLicence: string;
-    contact: string;
-    email: string;
-    whatsapp: string;
-    tier: string;
-  };
-  boq: { code: string; description: string; unit: string; qty: number; rate: string; total: string }[];
-  totalAed: string;
-  materialOption: string;
-  mobilisationDate: string;
-  crewSize: number;
-  metaforgeConfirmed: boolean;
-  insuranceConfirmed: boolean;
-  terms: { key: string; value: string }[];
-}
 
 interface SubmissionDetailActionsProps {
   tenderId: string;
   pdfFilename?: string;
-  pdfData?: PdfData;
 }
 
-/* ---------------------------------------------------------------
-   Component
-   --------------------------------------------------------------- */
+export { type PdfData } from './pdf-types';
 
-export function SubmissionDetailActions({ tenderId, pdfFilename, pdfData }: SubmissionDetailActionsProps) {
+export function SubmissionDetailActions({ tenderId, pdfFilename }: SubmissionDetailActionsProps) {
   const [downloading, setDownloading] = useState(false);
 
+  /** Print — just print what's on screen */
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
 
-  /** Generate and download a real PDF file — no print dialog */
-  const handleDownloadPdf = useCallback(() => {
-    if (!pdfData) return;
+  /**
+   * Download PDF — capture the on-screen document as an image,
+   * then wrap it in a PDF. Exact pixel-perfect copy of what you see.
+   */
+  const handleDownloadPdf = useCallback(async () => {
+    const el = document.querySelector('.submission-document') as HTMLElement | null;
+    if (!el) return;
+
     setDownloading(true);
-
     try {
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const gold = '#c9a84c';
-      const dark = '#1a1a1a';
-      const grey = '#666666';
-      const pageW = doc.internal.pageSize.getWidth();
-      let y = 15;
+      const html2canvas = (await import('html2canvas-pro')).default;
 
-      // ── Header ──
-      doc.setFontSize(18);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(dark);
-      doc.text('METAMORPHIC DESIGN', 15, y);
-      y += 6;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(gold);
-      doc.text('Subcontractor Tender Submission', 15, y);
-      y += 8;
-
-      // Gold line
-      doc.setDrawColor(gold);
-      doc.setLineWidth(0.5);
-      doc.line(15, y, pageW - 15, y);
-      y += 6;
-
-      // Package + Project info
-      doc.setFontSize(9);
-      doc.setTextColor(dark);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Package: ${pdfData.packageCode} — ${pdfData.packageName}`, 15, y);
-      doc.text(`Project: ${pdfData.projectName}`, pageW / 2, y);
-      y += 5;
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Submission Date: ${pdfData.submissionDate}`, 15, y);
-      doc.text(`Reference: ${pdfData.reference}`, pageW / 2, y);
-      y += 8;
-
-      // ── Vendor Details ──
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(gold);
-      doc.text('VENDOR DETAILS', 15, y);
-      y += 5;
-      doc.setFontSize(8);
-      doc.setTextColor(dark);
-      doc.setFont('helvetica', 'normal');
-      const vendorLines = [
-        [`Company: ${pdfData.vendor.company}`, `Trade Licence: ${pdfData.vendor.tradeLicence}`],
-        [`Contact: ${pdfData.vendor.contact}`, `Email: ${pdfData.vendor.email}`],
-        [`WhatsApp: ${pdfData.vendor.whatsapp}`, `Vendor Tier: ${pdfData.vendor.tier}`],
-      ];
-      for (const [left, right] of vendorLines) {
-        doc.text(left, 15, y);
-        doc.text(right, pageW / 2, y);
-        y += 4.5;
-      }
-      y += 4;
-
-      // ── BOQ Table ──
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(gold);
-      doc.text('BILL OF QUANTITIES', 15, y);
-      y += 3;
-
-      autoTable(doc, {
-        startY: y,
-        head: [['Code', 'Description', 'Unit', 'Qty', 'Rate (AED)', 'Total (AED)']],
-        body: pdfData.boq.map((row) => [row.code, row.description, row.unit, String(row.qty), row.rate, row.total]),
-        foot: [['', '', '', '', 'TOTAL (AED)', pdfData.totalAed]],
-        theme: 'grid',
-        styles: { fontSize: 7.5, cellPadding: 1.5, textColor: [26, 26, 26] },
-        headStyles: { fillColor: [45, 45, 45], textColor: [201, 168, 76], fontStyle: 'bold', fontSize: 7 },
-        footStyles: { fillColor: [45, 45, 45], textColor: [201, 168, 76], fontStyle: 'bold', fontSize: 8 },
-        columnStyles: {
-          0: { cellWidth: 15 },
-          4: { halign: 'right' },
-          5: { halign: 'right' },
-        },
-        margin: { left: 15, right: 15 },
+      // Capture the document as a high-res canvas
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
       });
 
-      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+      // Convert to PDF dimensions (A4)
+      const imgData = canvas.toDataURL('image/png');
+      const imgW = canvas.width;
+      const imgH = canvas.height;
 
-      // ── Submission Details ──
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(gold);
-      doc.text('SUBMISSION DETAILS', 15, y);
-      y += 5;
-      doc.setFontSize(8);
-      doc.setTextColor(dark);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Material Option: ${pdfData.materialOption}`, 15, y);
-      doc.text(`Mobilisation Date: ${pdfData.mobilisationDate}`, pageW / 2, y);
-      y += 4.5;
-      doc.text(`Crew Size: ${pdfData.crewSize}`, 15, y);
-      y += 6;
+      // A4 in px at 96dpi: 794 x 1123
+      const pdfW = 210; // mm
+      const pdfH = (imgH * pdfW) / imgW; // maintain aspect ratio
 
-      // ── Compliance ──
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(gold);
-      doc.text('COMPLIANCE', 15, y);
-      y += 5;
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      const mf = pdfData.metaforgeConfirmed ? 'Confirmed' : 'Not Confirmed';
-      const ins = pdfData.insuranceConfirmed ? 'Confirmed' : 'Not Confirmed';
-      doc.setTextColor(pdfData.metaforgeConfirmed ? '#27ae60' : '#c0392b');
-      doc.text(`MetaForge Portal: ${mf}`, 15, y);
-      doc.setTextColor(pdfData.insuranceConfirmed ? '#27ae60' : '#c0392b');
-      doc.text(`Insurance (AED 2M): ${ins}`, pageW / 2, y);
-      y += 6;
+      // Dynamic import jsPDF only for the tiny PDF wrapper
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF({
+        orientation: pdfH > 297 ? 'portrait' : 'portrait',
+        unit: 'mm',
+        format: [pdfW, Math.max(pdfH, 297)],
+      });
 
-      // ── Commercial Terms ──
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(gold);
-      doc.text('COMMERCIAL TERMS', 15, y);
-      y += 5;
-      doc.setFontSize(7);
-      doc.setTextColor(grey);
-      doc.setFont('helvetica', 'normal');
-      for (let i = 0; i < pdfData.terms.length; i++) {
-        const t = pdfData.terms[i];
-        doc.text(`${i + 1}. ${t.key} — ${t.value}`, 15, y);
-        y += 3.5;
-        if (y > 275) { doc.addPage(); y = 15; }
-      }
-      y += 4;
-
-      // ── Footer ──
-      doc.setDrawColor(grey);
-      doc.setLineWidth(0.3);
-      doc.line(15, y, pageW - 15, y);
-      y += 4;
-      doc.setFontSize(7);
-      doc.setTextColor(grey);
-      doc.text('This document was generated from the Metamorphic Tender Portal.', pageW / 2, y, { align: 'center' });
-      y += 3;
-      doc.text('Submission is final and binding.', pageW / 2, y, { align: 'center' });
-      y += 3;
-      doc.setFont('helvetica', 'bold');
-      doc.text('Metamorphic Design FZ · Dubai, UAE', pageW / 2, y, { align: 'center' });
-
-      // ── Save ──
+      doc.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
       doc.save(`${pdfFilename ?? 'Tender-Submission'}.pdf`);
     } catch (err) {
-      console.error('PDF generation failed:', err);
+      console.error('PDF download failed:', err);
     } finally {
       setDownloading(false);
     }
-  }, [pdfData, pdfFilename]);
+  }, [pdfFilename]);
 
   return (
     <div className="submission-actions-bar sticky top-0 z-50 -mx-4 -mt-4 mb-6 flex items-center justify-between gap-3 border-b border-stone-700 bg-stone-900/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:-mt-6 sm:px-6 lg:-mt-6 print:hidden">
