@@ -13,14 +13,13 @@ export { type PdfData } from './pdf-types';
 export function SubmissionDetailActions({ tenderId, pdfFilename }: SubmissionDetailActionsProps) {
   const [downloading, setDownloading] = useState(false);
 
-  /** Print — just print what's on screen */
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
 
   /**
-   * Download PDF — capture the on-screen document as an image,
-   * then wrap it in a PDF. Exact pixel-perfect copy of what you see.
+   * Download PDF — captures on-screen document as image,
+   * then splits into proper A4 pages.
    */
   const handleDownloadPdf = useCallback(async () => {
     const el = document.querySelector('.submission-document') as HTMLElement | null;
@@ -29,32 +28,59 @@ export function SubmissionDetailActions({ tenderId, pdfFilename }: SubmissionDet
     setDownloading(true);
     try {
       const html2canvas = (await import('html2canvas-pro')).default;
+      const { jsPDF } = await import('jspdf');
 
-      // Capture the document as a high-res canvas
       const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
       });
 
-      // Convert to PDF dimensions (A4)
       const imgData = canvas.toDataURL('image/png');
       const imgW = canvas.width;
       const imgH = canvas.height;
 
-      // A4 in px at 96dpi: 794 x 1123
-      const pdfW = 210; // mm
-      const pdfH = (imgH * pdfW) / imgW; // maintain aspect ratio
+      // A4 dimensions in mm
+      const a4W = 210;
+      const a4H = 297;
 
-      // Dynamic import jsPDF only for the tiny PDF wrapper
-      const { jsPDF } = await import('jspdf');
-      const doc = new jsPDF({
-        orientation: pdfH > 297 ? 'portrait' : 'portrait',
-        unit: 'mm',
-        format: [pdfW, Math.max(pdfH, 297)],
-      });
+      // How tall the image is in mm when scaled to A4 width
+      const scaledH = (imgH * a4W) / imgW;
 
-      doc.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+      if (scaledH <= a4H) {
+        // Fits on one page
+        doc.addImage(imgData, 'PNG', 0, 0, a4W, scaledH);
+      } else {
+        // Split across multiple A4 pages
+        const totalPages = Math.ceil(scaledH / a4H);
+        const sliceHeightPx = (a4H / a4W) * imgW; // height in px per A4 page
+
+        for (let page = 0; page < totalPages; page++) {
+          if (page > 0) doc.addPage();
+
+          // Create a canvas slice for this page
+          const sliceCanvas = document.createElement('canvas');
+          sliceCanvas.width = imgW;
+          sliceCanvas.height = Math.min(sliceHeightPx, imgH - page * sliceHeightPx);
+          const ctx = sliceCanvas.getContext('2d');
+          if (!ctx) continue;
+
+          ctx.drawImage(
+            canvas,
+            0, page * sliceHeightPx,                    // source x, y
+            imgW, sliceCanvas.height,                    // source w, h
+            0, 0,                                        // dest x, y
+            imgW, sliceCanvas.height,                    // dest w, h
+          );
+
+          const sliceData = sliceCanvas.toDataURL('image/png');
+          const sliceH = (sliceCanvas.height * a4W) / imgW;
+          doc.addImage(sliceData, 'PNG', 0, 0, a4W, sliceH);
+        }
+      }
+
       doc.save(`${pdfFilename ?? 'Tender-Submission'}.pdf`);
     } catch (err) {
       console.error('PDF download failed:', err);

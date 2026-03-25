@@ -368,7 +368,7 @@ export default async function SubmissionDetailPage({
       <style
         dangerouslySetInnerHTML={{
           __html: `
-            @page { size: A4; margin: 0; }
+            @page { size: A4; margin: 8mm 10mm; }
             @media print {
               * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
               html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
@@ -386,6 +386,16 @@ export default async function SubmissionDetailPage({
                 box-shadow: none !important;
                 border: none !important;
               }
+
+              /* Page break hints — keep sections together */
+              .submission-document section,
+              .submission-document > div {
+                page-break-inside: avoid;
+                break-inside: avoid;
+              }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; break-inside: avoid; }
+              thead { display: table-header-group; }
             }
           `,
         }}
