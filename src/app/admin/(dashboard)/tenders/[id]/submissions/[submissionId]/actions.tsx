@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 
 interface SubmissionDetailActionsProps {
   tenderId: string;
@@ -11,58 +11,45 @@ interface SubmissionDetailActionsProps {
 export { type PdfData } from './pdf-types';
 
 export function SubmissionDetailActions({ tenderId, pdfFilename }: SubmissionDetailActionsProps) {
-  const [downloading, setDownloading] = useState(false);
-
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
 
-  /**
-   * Download PDF — captures on-screen document as image,
-   * then splits into proper A4 pages.
-   */
-  const handleDownloadPdf = useCallback(async () => {
-    const el = document.querySelector('.submission-document') as HTMLElement | null;
-    if (!el) return;
+  const handleDownloadPdf = useCallback(() => {
+    // Same print mechanism that works perfectly — but in a clean popup
+    // so the main page stays responsive. User selects "Save as PDF" as destination.
+    const docEl = document.querySelector('.submission-document');
+    if (!docEl) return;
 
-    setDownloading(true);
-    try {
-      const html2canvas = (await import('html2canvas-pro')).default;
-      const { jsPDF } = await import('jspdf');
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map((s) => s.outerHTML)
+      .join('\n');
 
-      const canvas = await html2canvas(el, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-      });
+    const popup = window.open('', '_blank');
+    if (!popup) return;
 
-      const imgData = canvas.toDataURL('image/png');
-      const imgW = canvas.width;
-      const imgH = canvas.height;
-
-      // Scale to fit entire document on A4 width with margins
-      const a4W = 210;
-      const a4H = 297;
-      const m = 5; // margin mm
-      const contentW = a4W - m * 2;
-      const contentH = (imgH * contentW) / imgW;
-
-      // Create PDF sized to fit — if taller than A4, use custom height
-      const pageH = Math.max(a4H, contentH + m * 2);
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: contentH + m * 2 <= a4H ? 'a4' : [a4W, pageH],
-      });
-
-      doc.addImage(imgData, 'PNG', m, m, contentW, contentH);
-
-      doc.save(`${pdfFilename ?? 'Tender-Submission'}.pdf`);
-    } catch (err) {
-      console.error('PDF download failed:', err);
-    } finally {
-      setDownloading(false);
-    }
+    popup.document.write(`<!DOCTYPE html>
+<html><head>
+<title>${pdfFilename ?? 'Tender-Submission'}</title>
+${styles}
+<style>
+  body { margin: 0; padding: 0; background: white; }
+  @page { size: A4; margin: 8mm 10mm; }
+  @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .submission-document { max-width: 100% !important; margin: 0 !important; box-shadow: none !important; border: none !important; }
+    .submission-document section, .submission-document > div { page-break-inside: avoid; break-inside: avoid; }
+    table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; break-inside: avoid; }
+  }
+</style>
+</head><body>
+<div class="submission-document" style="max-width:820px;margin:0 auto;background:white;color:#1a1a1a;">
+${docEl.innerHTML}
+</div>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`);
+    popup.document.close();
   }, [pdfFilename]);
 
   return (
@@ -92,22 +79,12 @@ export function SubmissionDetailActions({ tenderId, pdfFilename }: SubmissionDet
         <button
           type="button"
           onClick={handleDownloadPdf}
-          disabled={downloading}
-          className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-stone-900 hover:bg-amber-500 transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-stone-900 hover:bg-amber-500 transition-colors"
         >
-          {downloading ? (
-            <>
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-stone-800 border-t-transparent" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-              </svg>
-              Download PDF
-            </>
-          )}
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          Save as PDF
         </button>
       </div>
     </div>
