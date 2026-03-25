@@ -5,8 +5,11 @@ import type { BoqLineItem } from '@/lib/types/form-schema';
 interface BoqTableProps {
   template: BoqLineItem[];
   rates: Record<string, number>;
+  quantities: Record<string, number>;
   onRateChange: (code: string, rate: number) => void;
+  onQtyChange: (code: string, qty: number) => void;
   errors: Record<string, string>;
+  qtyEditable: boolean;
 }
 
 function formatAED(value: number): string {
@@ -19,31 +22,45 @@ function formatAED(value: number): string {
 function DesktopTable({
   template,
   rates,
+  quantities,
   onRateChange,
+  onQtyChange,
   errors,
   grandTotal,
+  qtyEditable,
 }: BoqTableProps & { grandTotal: number }) {
   return (
     <div className="hidden sm:block w-full overflow-x-auto">
-      <table className="w-full text-sm">
+      {qtyEditable && (
+        <p className="text-[13px] text-[var(--md-grey)] mb-4">
+          Vendors must assess quantities on site inspection. Enter your quantities and unit rates below. Line totals auto-calculate.
+        </p>
+      )}
+      <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="bg-stone-50">
-            <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500">
-              Code
+          <tr className="bg-[var(--md-dark)]">
+            <th className="whitespace-nowrap px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--accent)] border-b-2 border-[var(--accent)]"
+              style={{ width: '5%' }}>
+              #
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500">
+            <th className="px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--accent)] border-b-2 border-[var(--accent)]"
+              style={{ width: '35%' }}>
               Description
             </th>
-            <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500">
+            <th className="whitespace-nowrap px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--accent)] border-b-2 border-[var(--accent)]"
+              style={{ width: '12%' }}>
               Unit
             </th>
-            <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-stone-500">
+            <th className="whitespace-nowrap px-3 py-2.5 text-right text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--accent)] border-b-2 border-[var(--accent)]"
+              style={{ width: '14%' }}>
               Qty
             </th>
-            <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-stone-500">
+            <th className="whitespace-nowrap px-3 py-2.5 text-right text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--accent)] border-b-2 border-[var(--accent)]"
+              style={{ width: '16%' }}>
               Rate (AED)
             </th>
-            <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-stone-500">
+            <th className="whitespace-nowrap px-3 py-2.5 text-right text-[11px] font-medium uppercase tracking-[0.5px] text-[var(--accent)] border-b-2 border-[var(--accent)]"
+              style={{ width: '18%' }}>
               Total (AED)
             </th>
           </tr>
@@ -51,25 +68,43 @@ function DesktopTable({
         <tbody>
           {template.map((item, idx) => {
             const rate = rates[item.code] ?? 0;
-            const lineTotal = item.quantity * rate;
+            const qty = qtyEditable ? (quantities[item.code] ?? 0) : item.quantity;
+            const lineTotal = qty * rate;
             const error = errors[item.code];
 
             return (
-              <tr
-                key={item.code}
-                className={idx % 2 === 0 ? 'bg-white' : 'bg-stone-50/50'}
-              >
-                <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-stone-600">
-                  {item.code}
+              <tr key={item.code} className="border-b border-[#333]">
+                <td className="px-3 py-2.5 text-sm text-[var(--text-inverse)]">
+                  {idx + 1}
                 </td>
-                <td className="px-4 py-3 text-stone-900">{item.description}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-stone-600">
+                <td className="px-3 py-2.5 text-sm font-medium text-[var(--text-inverse)]">
+                  {item.description}
+                </td>
+                <td className="px-3 py-2.5 text-[13px] text-[var(--md-grey)]">
                   {item.unit}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right font-mono tabular-nums text-stone-600">
-                  {item.quantity.toLocaleString()}
+                <td className="px-3 py-2.5 text-right">
+                  {qtyEditable ? (
+                    <input
+                      type="number"
+                      value={quantities[item.code] || ''}
+                      onChange={(e) => {
+                        const parsed = parseFloat(e.target.value);
+                        onQtyChange(item.code, isNaN(parsed) ? 0 : parsed);
+                      }}
+                      min={0}
+                      step={0.01}
+                      placeholder="0"
+                      className="w-full bg-[var(--md-dark)] border border-[#555] text-[var(--text-inverse)] px-2.5 py-2 text-sm text-right font-[inherit] focus:outline-none focus:border-[var(--accent)]"
+                      aria-label={`Quantity for ${item.code}`}
+                    />
+                  ) : (
+                    <span className="font-mono tabular-nums text-[var(--text-inverse)]">
+                      {item.quantity.toLocaleString()}
+                    </span>
+                  )}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right">
+                <td className="px-3 py-2.5 text-right">
                   <div className="flex flex-col items-end gap-1">
                     <input
                       type="number"
@@ -82,20 +117,17 @@ function DesktopTable({
                       step={0.01}
                       placeholder="0.00"
                       className={[
-                        'w-28 min-h-[36px] rounded-md border px-2 py-1 text-right font-mono text-sm tabular-nums',
-                        'focus:outline-none focus:ring-2 focus:ring-amber-700 focus:border-amber-700',
-                        error
-                          ? 'border-red-600 focus:ring-red-600'
-                          : 'border-stone-300',
+                        'w-full bg-[var(--md-dark)] border text-[var(--text-inverse)] px-2.5 py-2 text-sm text-right font-[inherit] focus:outline-none focus:border-[var(--accent)]',
+                        error ? 'border-[var(--md-red)]' : 'border-[#555]',
                       ].join(' ')}
                       aria-label={`Rate for ${item.code}`}
                     />
                     {error && (
-                      <span className="text-xs text-red-700">{error}</span>
+                      <span className="text-xs text-[var(--md-red)]">{error}</span>
                     )}
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right font-mono tabular-nums font-medium text-stone-900">
+                <td className="px-3 py-2.5 text-right font-mono tabular-nums font-semibold text-[var(--accent)]">
                   {formatAED(lineTotal)}
                 </td>
               </tr>
@@ -103,14 +135,14 @@ function DesktopTable({
           })}
         </tbody>
         <tfoot>
-          <tr className="border-t-2 border-stone-300 bg-stone-50">
+          <tr className="bg-[var(--md-dark)] border-t-2 border-[var(--accent)]">
             <td
               colSpan={5}
-              className="px-4 py-4 text-right text-sm font-semibold text-stone-900"
+              className="px-3 py-3 text-right text-sm font-bold text-[var(--accent)]"
             >
-              Grand Total (AED)
+              GRAND TOTAL (AED)
             </td>
-            <td className="whitespace-nowrap px-4 py-4 text-right font-mono tabular-nums text-base font-bold text-stone-900">
+            <td className="whitespace-nowrap px-3 py-3 text-right font-mono tabular-nums text-base font-bold text-[var(--accent)]">
               {formatAED(grandTotal)}
             </td>
           </tr>
@@ -123,48 +155,78 @@ function DesktopTable({
 function MobileCards({
   template,
   rates,
+  quantities,
   onRateChange,
+  onQtyChange,
   errors,
   grandTotal,
+  qtyEditable,
 }: BoqTableProps & { grandTotal: number }) {
   return (
     <div className="flex flex-col gap-3 sm:hidden">
-      {template.map((item) => {
+      {qtyEditable && (
+        <p className="text-[13px] text-[var(--md-grey)] mb-2">
+          Vendors must assess quantities on site inspection. Enter your quantities and unit rates below.
+        </p>
+      )}
+      {template.map((item, idx) => {
         const rate = rates[item.code] ?? 0;
-        const lineTotal = item.quantity * rate;
+        const qty = qtyEditable ? (quantities[item.code] ?? 0) : item.quantity;
+        const lineTotal = qty * rate;
         const error = errors[item.code];
 
         return (
           <div
             key={item.code}
-            className="rounded-lg border border-stone-200 bg-white p-4"
+            className="border border-[#444] bg-[var(--md-dark)] p-4"
           >
             <div className="mb-2 flex items-start justify-between gap-2">
-              <p className="text-sm font-medium text-stone-900">
+              <p className="text-sm font-medium text-[var(--text-inverse)]">
                 {item.description}
               </p>
-              <span className="flex-shrink-0 font-mono text-xs text-stone-500">
-                {item.code}
+              <span className="flex-shrink-0 text-xs text-[var(--md-grey)]">
+                #{idx + 1}
               </span>
             </div>
 
-            <div className="mb-3 flex gap-4 text-xs text-stone-500">
+            <div className="mb-3 flex gap-4 text-xs text-[var(--md-grey)]">
               <span>
-                Unit: <span className="text-stone-700">{item.unit}</span>
+                Unit: <span className="text-[var(--text-inverse)]">{item.unit}</span>
               </span>
-              <span>
-                Qty:{' '}
-                <span className="font-mono tabular-nums text-stone-700">
-                  {item.quantity.toLocaleString()}
+              {!qtyEditable && (
+                <span>
+                  Qty:{' '}
+                  <span className="font-mono tabular-nums text-[var(--text-inverse)]">
+                    {item.quantity.toLocaleString()}
+                  </span>
                 </span>
-              </span>
+              )}
             </div>
 
-            <div className="flex items-center justify-between gap-3">
+            <div className={`flex items-end gap-3 ${qtyEditable ? 'flex-wrap' : 'justify-between'}`}>
+              {qtyEditable && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-[var(--md-grey)]">
+                    Qty
+                  </label>
+                  <input
+                    type="number"
+                    value={quantities[item.code] || ''}
+                    onChange={(e) => {
+                      const parsed = parseFloat(e.target.value);
+                      onQtyChange(item.code, isNaN(parsed) ? 0 : parsed);
+                    }}
+                    min={0}
+                    step={0.01}
+                    placeholder="0"
+                    className="w-24 min-h-[44px] bg-[var(--bg-primary)] border border-[#555] text-[var(--text-inverse)] px-3 py-2 text-right text-[16px] font-[inherit] focus:outline-none focus:border-[var(--accent)]"
+                  />
+                </div>
+              )}
               <div className="flex flex-col gap-1">
                 <label
                   htmlFor={`rate-${item.code}`}
-                  className="text-xs font-medium text-stone-500"
+                  className="text-xs font-medium text-[var(--md-grey)]"
                 >
                   Rate (AED)
                 </label>
@@ -180,20 +242,17 @@ function MobileCards({
                   step={0.01}
                   placeholder="0.00"
                   className={[
-                    'w-28 min-h-[44px] rounded-md border px-3 py-2 text-right font-mono text-[16px] tabular-nums',
-                    'focus:outline-none focus:ring-2 focus:ring-amber-700 focus:border-amber-700',
-                    error
-                      ? 'border-red-600 focus:ring-red-600'
-                      : 'border-stone-300',
+                    'w-28 min-h-[44px] bg-[var(--bg-primary)] border text-[var(--text-inverse)] px-3 py-2 text-right text-[16px] font-[inherit] focus:outline-none focus:border-[var(--accent)]',
+                    error ? 'border-[var(--md-red)]' : 'border-[#555]',
                   ].join(' ')}
                 />
                 {error && (
-                  <span className="text-xs text-red-700">{error}</span>
+                  <span className="text-xs text-[var(--md-red)]">{error}</span>
                 )}
               </div>
-              <div className="text-right">
-                <p className="text-xs text-stone-500">Total</p>
-                <p className="font-mono tabular-nums text-sm font-semibold text-stone-900">
+              <div className="text-right ml-auto">
+                <p className="text-xs text-[var(--md-grey)]">Total</p>
+                <p className="font-mono tabular-nums text-sm font-semibold text-[var(--accent)]">
                   {formatAED(lineTotal)}
                 </p>
               </div>
@@ -203,12 +262,12 @@ function MobileCards({
       })}
 
       {/* Sticky grand total */}
-      <div className="sticky bottom-0 z-10 rounded-lg border-2 border-stone-300 bg-stone-50 px-4 py-3">
+      <div className="sticky bottom-0 z-10 border-t-2 border-[var(--accent)] bg-[var(--md-dark)] px-4 py-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-stone-900">
+          <span className="text-sm font-bold uppercase text-[var(--accent)]">
             Grand Total (AED)
           </span>
-          <span className="font-mono tabular-nums text-lg font-bold text-stone-900">
+          <span className="font-mono tabular-nums text-lg font-bold text-[var(--accent)]">
             {formatAED(grandTotal)}
           </span>
         </div>
@@ -218,11 +277,12 @@ function MobileCards({
 }
 
 export function BoqTable(props: BoqTableProps) {
-  const { template, rates } = props;
+  const { template, rates, quantities, qtyEditable } = props;
 
   const grandTotal = template.reduce((sum, item) => {
     const rate = rates[item.code] ?? 0;
-    return sum + item.quantity * rate;
+    const qty = qtyEditable ? (quantities[item.code] ?? 0) : item.quantity;
+    return sum + qty * rate;
   }, 0);
 
   return (

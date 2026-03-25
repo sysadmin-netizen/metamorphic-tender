@@ -13,6 +13,13 @@ export interface Database {
           is_active: boolean;
           is_archived: boolean;
           commercial_terms: CommercialTermsJson;
+          location: string | null;
+          job_sequence: string | null;
+          dependencies: string | null;
+          mobilisation_requirement: string | null;
+          scope_items: string[] | null;
+          boq_qty_editable: boolean;
+          notes_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -27,6 +34,13 @@ export interface Database {
           is_active?: boolean;
           is_archived?: boolean;
           commercial_terms?: CommercialTermsJson;
+          location?: string | null;
+          job_sequence?: string | null;
+          dependencies?: string | null;
+          mobilisation_requirement?: string | null;
+          scope_items?: string[] | null;
+          boq_qty_editable?: boolean;
+          notes_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -41,6 +55,13 @@ export interface Database {
           is_active?: boolean;
           is_archived?: boolean;
           commercial_terms?: CommercialTermsJson;
+          location?: string | null;
+          job_sequence?: string | null;
+          dependencies?: string | null;
+          mobilisation_requirement?: string | null;
+          scope_items?: string[] | null;
+          boq_qty_editable?: boolean;
+          notes_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -356,7 +377,7 @@ export interface Database {
 // Enum types
 export type VendorTier = 'trial' | 'preferred' | 'strategic';
 export type VendorTenderStatus = 'invited' | 'opened' | 'submitted' | 'expired';
-export type MaterialOption = 'labour_only' | 'labour_material';
+export type MaterialOption = 'labour_only' | 'labour_material' | 'split_rate';
 
 // JSONB column types
 export type FormSchemaJson = {
@@ -392,6 +413,7 @@ export type BoqSubmissionItemJson = {
   code: string;
   rate: number;
   total: number;
+  quantity?: number;
 };
 
 export type CommercialTermsJson = Record<string, unknown>;

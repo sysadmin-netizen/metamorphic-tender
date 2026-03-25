@@ -1,38 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-
 interface CommercialTermsProps {
   terms: Record<string, unknown>;
+  accepted: boolean;
+  onAcceptChange: (accepted: boolean) => void;
+  error?: string;
 }
 
-function useIsDesktop(): boolean {
-  const [desktop, setDesktop] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 640px)');
-    setDesktop(mq.matches);
-
-    function handleChange(e: MediaQueryListEvent) {
-      setDesktop(e.matches);
-    }
-
-    mq.addEventListener('change', handleChange);
-    return () => mq.removeEventListener('change', handleChange);
-  }, []);
-
-  return desktop;
-}
-
-export function CommercialTerms({ terms }: CommercialTermsProps) {
-  const isDesktop = useIsDesktop();
-  const [open, setOpen] = useState(false);
-
-  // On desktop, default to expanded; on mobile, collapsed
-  useEffect(() => {
-    setOpen(isDesktop);
-  }, [isDesktop]);
-
+export function CommercialTerms({
+  terms,
+  accepted,
+  onAcceptChange,
+  error,
+}: CommercialTermsProps) {
   const entries = Object.entries(terms);
 
   if (entries.length === 0) {
@@ -40,50 +20,42 @@ export function CommercialTerms({ terms }: CommercialTermsProps) {
   }
 
   return (
-    <div className="rounded-lg border border-stone-200 bg-white">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex min-h-[44px] w-full items-center justify-between px-4 py-3 text-left"
-        aria-expanded={open}
-      >
-        <span className="text-sm font-semibold text-stone-900">
-          Commercial Terms
-        </span>
-        <svg
-          className={[
-            'h-5 w-5 text-stone-500 transition-transform duration-200',
-            open ? 'rotate-180' : '',
-          ].join(' ')}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-          aria-hidden="true"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+    <div>
+      {/* Inline numbered terms box — dark bg, grey text, white strong text */}
+      <div className="bg-[var(--md-dark)] border border-[#444] p-5 mb-6 text-[13px] leading-[1.8] text-[var(--md-grey)]">
+        <p className="mb-4">
+          <strong className="text-[var(--text-inverse)]">
+            By submitting this tender, you acknowledge and accept the following terms:
+          </strong>
+        </p>
+        {entries.map(([key, value], idx) => (
+          <p key={key} className="mb-1">
+            <strong className="text-[var(--text-inverse)]">{idx + 1}.</strong>{' '}
+            <strong className="text-[var(--text-inverse)]">
+              {key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+            </strong>
+            {' — '}
+            {String(value)}
+          </p>
+        ))}
+      </div>
 
-      {open && (
-        <div className="border-t border-stone-200 px-4 py-3">
-          <dl className="flex flex-col gap-2">
-            {entries.map(([key, value]) => (
-              <div
-                key={key}
-                className="flex flex-col gap-0.5 sm:flex-row sm:gap-4 py-2 border-b border-stone-100 last:border-0"
-              >
-                <dt className="text-sm font-medium text-stone-500 sm:w-1/3 sm:flex-shrink-0">
-                  {key}
-                </dt>
-                {/* EC-24: XSS prevention via String() cast */}
-                <dd className="text-sm text-stone-900 sm:w-2/3">
-                  {String(value)}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
+      {/* Acceptance checkbox */}
+      <div className="flex items-center gap-2 py-3">
+        <input
+          type="checkbox"
+          id="terms_accepted"
+          checked={accepted}
+          onChange={(e) => onAcceptChange(e.target.checked)}
+          className="h-4 w-4 accent-[var(--accent)]"
+        />
+        <label htmlFor="terms_accepted" className="text-sm text-[var(--text-inverse)] cursor-pointer select-none">
+          I have read and accept all commercial terms above{' '}
+          <span className="text-[var(--accent)]">*</span>
+        </label>
+      </div>
+      {error && (
+        <p className="text-xs text-[var(--md-red)] mt-1">{error}</p>
       )}
     </div>
   );

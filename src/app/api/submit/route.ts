@@ -14,7 +14,7 @@ import type { FormField } from '@/lib/types/form-schema';
 interface SubmitRequestBody {
   token: string;
   form_data: Record<string, unknown>;
-  boq_data: { code: string; rate: number | string; total: number | string }[];
+  boq_data: { code: string; rate: number | string; total: number | string; quantity?: number | string }[];
   schema_hash: string;
 }
 
@@ -42,6 +42,7 @@ interface VendorTenderRow {
     closing_deadline: string;
     form_schema: FormSchemaJson;
     boq_template: BoqTemplateJson;
+    boq_qty_editable: boolean;
   };
   vendors: {
     id: string;
@@ -119,7 +120,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         id,
         closing_deadline,
         form_schema,
-        boq_template
+        boq_template,
+        boq_qty_editable
       ),
       vendors!inner (
         id
@@ -221,7 +223,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Validate & recalculate BOQ server-side
   const boqTemplate = vt.tender_configs.boq_template;
-  const submittedBoqMap = new Map<string, { rate: number | string; total: number | string }>();
+  const isQtyEditable = vt.tender_configs.boq_qty_editable ?? false;
+  const submittedBoqMap = new Map<string, { rate: number | string; total: number | string; quantity?: number | string }>();
   for (const entry of boq_data) {
     if (typeof entry === 'object' && entry !== null && typeof entry.code === 'string') {
       submittedBoqMap.set(entry.code, entry);
@@ -243,6 +246,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         code: templateItem.code,
         rate: 0,
         total: 0,
+        ...(isQtyEditable ? { quantity: 0 } : {}),
       });
       continue;
     }
@@ -255,19 +259,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       continue;
     }
 
+    // When qty editable, validate vendor-submitted quantity
+    let qty = templateItem.quantity;
+    if (isQtyEditable) {
+      qty = Number(vendorEntry.quantity ?? 0);
+      if (isNaN(qty) || qty < 0) {
+        boqErrors.push(`Invalid quantity for item ${templateItem.code}: quantity must be a non-negative number`);
+        continue;
+      }
+    }
+
     // Log zero rates as warnings
     if (rate === 0) {
       boqWarnings.push(`Zero rate submitted for code ${templateItem.code}`);
     }
 
-    // Server calculates total using ORIGINAL template quantities
-    const total = templateItem.quantity * rate;
+    // Server calculates total using appropriate quantity source
+    const total = qty * rate;
     serverTotal += total;
 
     serverBoqData.push({
       code: templateItem.code,
       rate,
       total,
+      ...(isQtyEditable ? { quantity: qty } : {}),
     });
   }
 
@@ -293,7 +308,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // Extract form fields needed for the submission row
-  const materialOption = (form_data.material_option as MaterialOption) ?? 'labour_only';
+  const rawMaterialOption = form_data.material_option as string | undefined;
+  const materialOption: MaterialOption = (
+    rawMaterialOption === 'labour_only' ||
+    rawMaterialOption === 'labour_material' ||
+    rawMaterialOption === 'split_rate'
+  ) ? rawMaterialOption : 'labour_only';
   const mobilisationDate = (form_data.mobilisation_date as string) ?? new Date().toISOString();
   const crewSize = typeof form_data.crew_size === 'number'
     ? form_data.crew_size

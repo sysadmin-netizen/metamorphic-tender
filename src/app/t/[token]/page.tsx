@@ -5,6 +5,7 @@ import { APP_NAME, COMPANY_NAME } from '@/lib/constants';
 import { Countdown } from '@/components/ui/countdown';
 import { SubmissionForm } from './submission-form';
 import type { Metadata } from 'next';
+import type { TableRow } from '@/lib/types/database';
 
 // ---------------------------------------------------------------------------
 // Dead-end components (rendered when a gate fails)
@@ -12,11 +13,11 @@ import type { Metadata } from 'next';
 
 function InvalidLink() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-surface)] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-4">
       <div className="mx-auto max-w-md text-center">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-900/30">
           <svg
-            className="h-8 w-8 text-red-600"
+            className="h-8 w-8 text-[var(--md-red)]"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.5}
@@ -30,14 +31,14 @@ function InvalidLink() {
             />
           </svg>
         </div>
-        <h1 className="text-xl font-semibold text-[var(--text-primary)]">
+        <h1 className="text-xl font-semibold text-[var(--text-inverse)]">
           Invalid Link
         </h1>
-        <p className="mt-3 text-sm text-[var(--text-secondary)]">
+        <p className="mt-3 text-sm text-[var(--md-grey)]">
           This tender link is not valid. Please check the URL or contact the
           procurement team for a new invitation.
         </p>
-        <p className="mt-6 text-xs text-[var(--text-secondary)]">
+        <p className="mt-6 text-xs text-[var(--md-grey)]">
           {COMPANY_NAME}
         </p>
       </div>
@@ -55,11 +56,11 @@ function LinkExpired({
   packageName: string;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-surface)] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-4">
       <div className="mx-auto max-w-md text-center">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-amber-900/30">
           <svg
-            className="h-8 w-8 text-amber-600"
+            className="h-8 w-8 text-[var(--accent)]"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.5}
@@ -73,21 +74,21 @@ function LinkExpired({
             />
           </svg>
         </div>
-        <h1 className="text-xl font-semibold text-[var(--text-primary)]">
+        <h1 className="text-xl font-semibold text-[var(--text-inverse)]">
           Link Expired
         </h1>
-        <p className="mt-3 text-sm text-[var(--text-secondary)]">
-          Your invitation link for <strong>{packageName}</strong> expired on{' '}
-          <strong>{formatGST(expiredAt)}</strong>.
+        <p className="mt-3 text-sm text-[var(--md-grey)]">
+          Your invitation link for <strong className="text-[var(--text-inverse)]">{packageName}</strong> expired on{' '}
+          <strong className="text-[var(--text-inverse)]">{formatGST(expiredAt)}</strong>.
         </p>
-        <p className="mt-2 text-sm text-[var(--text-secondary)]">
+        <p className="mt-2 text-sm text-[var(--md-grey)]">
           The tender closing deadline was{' '}
-          <strong>{formatGST(closingDeadline)}</strong>.
+          <strong className="text-[var(--text-inverse)]">{formatGST(closingDeadline)}</strong>.
         </p>
-        <p className="mt-6 text-xs text-[var(--text-secondary)]">
+        <p className="mt-6 text-xs text-[var(--md-grey)]">
           Please contact the procurement team if you need a new link.
         </p>
-        <p className="mt-4 text-xs text-[var(--text-secondary)]">
+        <p className="mt-4 text-xs text-[var(--md-grey)]">
           {COMPANY_NAME}
         </p>
       </div>
@@ -103,11 +104,11 @@ function TenderClosed({
   packageName: string;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-surface)] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-4">
       <div className="mx-auto max-w-md text-center">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-stone-100">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-stone-800">
           <svg
-            className="h-8 w-8 text-stone-500"
+            className="h-8 w-8 text-[var(--md-grey)]"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.5}
@@ -121,14 +122,14 @@ function TenderClosed({
             />
           </svg>
         </div>
-        <h1 className="text-xl font-semibold text-[var(--text-primary)]">
+        <h1 className="text-xl font-semibold text-[var(--text-inverse)]">
           Tender Closed
         </h1>
-        <p className="mt-3 text-sm text-[var(--text-secondary)]">
-          The submission window for <strong>{packageName}</strong> closed on{' '}
-          <strong>{formatGST(closingDeadline)}</strong>.
+        <p className="mt-3 text-sm text-[var(--md-grey)]">
+          The submission window for <strong className="text-[var(--text-inverse)]">{packageName}</strong> closed on{' '}
+          <strong className="text-[var(--text-inverse)]">{formatGST(closingDeadline)}</strong>.
         </p>
-        <p className="mt-6 text-xs text-[var(--text-secondary)]">
+        <p className="mt-6 text-xs text-[var(--md-grey)]">
           {COMPANY_NAME}
         </p>
       </div>
@@ -150,11 +151,11 @@ function SubmissionReceipt({
   submissionId: string;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-surface)] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-4">
       <div className="mx-auto max-w-md text-center">
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-50">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-900/30">
           <svg
-            className="h-8 w-8 text-green-600"
+            className="h-8 w-8 text-[var(--md-green)]"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.5}
@@ -168,48 +169,53 @@ function SubmissionReceipt({
             />
           </svg>
         </div>
-        <h1 className="text-xl font-semibold text-[var(--text-primary)]">
-          Submission Received
+        <h1 className="text-xl font-semibold text-[var(--md-green)]">
+          TENDER SUBMITTED SUCCESSFULLY
         </h1>
-        <p className="mt-3 text-sm text-[var(--text-secondary)]">
-          Thank you! Your tender submission for <strong>{packageName}</strong>{' '}
-          has been received and recorded.
+        <p className="mt-3 text-sm text-[var(--md-grey)]">
+          Your submission has been recorded. Reference will be emailed to you.
         </p>
 
-        <div className="mt-6 rounded-lg border border-stone-200 bg-white p-4 text-left">
+        <div className="mt-6 border border-[#444] bg-[var(--md-dark)] p-4 text-left">
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <dt className="text-[var(--text-secondary)]">Company</dt>
-              <dd className="font-medium text-[var(--text-primary)]">
+              <dt className="text-[var(--md-grey)]">Package</dt>
+              <dd className="font-medium text-[var(--text-inverse)]">
+                {packageName}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-[var(--md-grey)]">Company</dt>
+              <dd className="font-medium text-[var(--text-inverse)]">
                 {companyName}
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-[var(--text-secondary)]">Submitted</dt>
-              <dd className="font-medium text-[var(--text-primary)]">
+              <dt className="text-[var(--md-grey)]">Submitted</dt>
+              <dd className="font-medium text-[var(--text-inverse)]">
                 {formatGST(submittedAt)}
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-[var(--text-secondary)]">Total Quote</dt>
-              <dd className="font-mono font-semibold text-[var(--text-primary)]">
+              <dt className="text-[var(--md-grey)]">Total Quote</dt>
+              <dd className="font-mono font-semibold text-[var(--accent)]">
                 AED {totalQuote.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-[var(--text-secondary)]">Reference</dt>
-              <dd className="font-mono text-xs text-[var(--text-secondary)]">
+              <dt className="text-[var(--md-grey)]">Reference</dt>
+              <dd className="font-mono text-xs text-[var(--md-grey)]">
                 {submissionId.slice(0, 8).toUpperCase()}
               </dd>
             </div>
           </dl>
         </div>
 
-        <p className="mt-6 text-xs text-[var(--text-secondary)]">
+        <p className="mt-6 text-xs text-[var(--md-grey)]">
           A confirmation will be sent to your registered email. You may close
           this page.
         </p>
-        <p className="mt-4 text-xs text-[var(--text-secondary)]">
+        <p className="mt-4 text-xs text-[var(--md-grey)]">
           {COMPANY_NAME}
         </p>
       </div>
@@ -218,51 +224,61 @@ function SubmissionReceipt({
 }
 
 // ---------------------------------------------------------------------------
-// Commercial terms accordion (server-rendered)
+// Package header box (server-rendered)
 // ---------------------------------------------------------------------------
 
-function CommercialTermsAccordion({
-  terms,
+function PackageHeader({
+  tenderConfig,
 }: {
-  terms: Record<string, unknown>;
+  tenderConfig: TableRow<'tender_configs'>;
 }) {
-  const entries = Object.entries(terms);
-  if (entries.length === 0) return null;
+  const scopeItems = (tenderConfig.scope_items ?? []) as string[];
 
   return (
-    <details className="group rounded-lg border border-stone-200 bg-white">
-      <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-medium text-[var(--text-primary)] [&::-webkit-details-marker]:hidden">
-        <span>Commercial Terms &amp; Conditions</span>
-        <svg
-          className="h-4 w-4 shrink-0 text-stone-400 transition-transform group-open:rotate-180"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={2}
-          stroke="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-          />
-        </svg>
-      </summary>
-      <div className="border-t border-stone-100 px-5 py-4">
-        <dl className="space-y-3 text-sm">
-          {entries.map(([key, value]) => (
-            <div key={key}>
-              <dt className="font-medium text-[var(--text-primary)]">
-                {key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-              </dt>
-              <dd className="mt-0.5 text-[var(--text-secondary)]">
-                {String(value)}
-              </dd>
-            </div>
-          ))}
-        </dl>
+    <div className="border border-[var(--accent)] bg-[var(--md-dark)] p-7 mb-8">
+      <h2 className="text-[var(--accent)] text-xl font-bold tracking-wide uppercase mb-4">
+        {tenderConfig.package_code} — {tenderConfig.package_name}
+      </h2>
+      <div className="space-y-2 text-sm">
+        <div className="text-[var(--md-grey)]">
+          <strong className="text-[var(--text-inverse)]">Project:</strong>{' '}
+          {tenderConfig.project_name}
+        </div>
+        {tenderConfig.location && (
+          <div className="text-[var(--md-grey)]">
+            <strong className="text-[var(--text-inverse)]">Location:</strong>{' '}
+            {tenderConfig.location}
+          </div>
+        )}
+        {tenderConfig.job_sequence && (
+          <div className="text-[var(--md-grey)]">
+            <strong className="text-[var(--text-inverse)]">Job Sequence:</strong>{' '}
+            {tenderConfig.job_sequence}
+          </div>
+        )}
+        {tenderConfig.dependencies && (
+          <div className="text-[var(--md-grey)]">
+            <strong className="text-[var(--text-inverse)]">Dependencies:</strong>{' '}
+            {tenderConfig.dependencies}
+          </div>
+        )}
+        {tenderConfig.mobilisation_requirement && (
+          <div className="text-[var(--md-grey)]">
+            <strong className="text-[var(--text-inverse)]">Mobilisation Requirement:</strong>{' '}
+            {tenderConfig.mobilisation_requirement}
+          </div>
+        )}
       </div>
-    </details>
+      {scopeItems.length > 0 && (
+        <ul className="mt-4 list-disc pl-5 space-y-1.5">
+          {scopeItems.map((item, idx) => (
+            <li key={idx} className="text-sm text-[var(--text-inverse)] leading-relaxed">
+              {item}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -304,10 +320,10 @@ export default async function VendorTenderPage({
   }
 
   const tenderConfig = vendorTender.tender_configs as unknown as
-    | import('@/lib/types/database').TableRow<'tender_configs'>
+    | TableRow<'tender_configs'>
     | null;
   const vendor = vendorTender.vendors as unknown as
-    | import('@/lib/types/database').TableRow<'vendors'>
+    | TableRow<'vendors'>
     | null;
 
   if (!tenderConfig || !vendor) {
@@ -392,10 +408,10 @@ export default async function VendorTenderPage({
       : tenderConfig.closing_deadline;
 
   // -----------------------------------------------------------------------
-  // Render the form page
+  // Render the form page — gold+black theme matching reference HTML
   // -----------------------------------------------------------------------
   return (
-    <>
+    <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-inverse)]">
       <head>
         <meta name="referrer" content="no-referrer" />
         <meta
@@ -404,48 +420,38 @@ export default async function VendorTenderPage({
         />
       </head>
 
-      {/* Dark full-width header */}
-      <header className="w-full bg-[var(--bg-primary)] px-4 py-4 sm:px-6">
-        <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-base font-semibold text-[var(--text-inverse)] sm:text-lg">
-              {tenderConfig.package_name}
+      {/* Dark header with gold border */}
+      <header className="w-full bg-[var(--md-dark)] border-b-[3px] border-[var(--accent)] px-6 py-6 sm:px-10">
+        <div className="mx-auto flex max-w-[900px] flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-[3px] text-[var(--accent)] uppercase sm:text-[28px]">
+              Metamorphic Design
             </h1>
-            <p className="mt-0.5 text-xs text-stone-400">
-              {tenderConfig.project_name} &middot; {tenderConfig.package_code}
+            <p className="mt-1 text-xs tracking-[2px] text-[var(--md-grey)] uppercase">
+              Subcontractor Tender Submission Portal
             </p>
           </div>
-          <div className="flex flex-col items-start sm:ml-4 sm:items-end sm:shrink-0">
-            <span className="mb-1 text-xs font-medium uppercase tracking-wider text-stone-400">
-              Time remaining
+          <div className="flex flex-col items-start sm:items-end sm:shrink-0 sm:text-right">
+            <span className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-[var(--md-grey)]">
+              Tender Closes In
             </span>
             <Countdown deadline={effectiveDeadline} />
+            <span className="mt-1 text-[13px] text-[var(--md-grey)]">
+              {formatGST(effectiveDeadline)}
+            </span>
           </div>
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
-        {/* Vendor greeting */}
-        <div className="mb-6">
-          <p className="text-sm text-[var(--text-secondary)]">
-            Submitting as{' '}
-            <strong className="text-[var(--text-primary)]">
-              {vendor.company_name}
-            </strong>
-          </p>
-        </div>
+      {/* Status bar */}
+      <div className="w-full bg-[var(--md-green)] text-center py-2.5 text-sm font-semibold tracking-wider uppercase text-white">
+        TENDER OPEN — ACCEPTING SUBMISSIONS
+      </div>
 
-        {/* Commercial terms accordion */}
-        {tenderConfig.commercial_terms &&
-          typeof tenderConfig.commercial_terms === 'object' &&
-          Object.keys(tenderConfig.commercial_terms).length > 0 && (
-            <div className="mb-6">
-              <CommercialTermsAccordion
-                terms={tenderConfig.commercial_terms as Record<string, unknown>}
-              />
-            </div>
-          )}
+      {/* Main content */}
+      <main className="mx-auto w-full max-w-[900px] px-6 py-10 sm:px-6">
+        {/* Package header box */}
+        <PackageHeader tenderConfig={tenderConfig} />
 
         {/* Submission form (client component) */}
         <SubmissionForm
@@ -455,6 +461,10 @@ export default async function VendorTenderPage({
             boq_template: tenderConfig.boq_template,
             closing_deadline: tenderConfig.closing_deadline,
             package_name: tenderConfig.package_name,
+            package_code: tenderConfig.package_code,
+            commercial_terms: tenderConfig.commercial_terms as Record<string, unknown>,
+            boq_qty_editable: tenderConfig.boq_qty_editable ?? false,
+            notes_enabled: tenderConfig.notes_enabled ?? true,
           }}
           vendorData={{
             company_name: vendor.company_name,
@@ -470,9 +480,11 @@ export default async function VendorTenderPage({
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-stone-200 py-6 text-center text-xs text-[var(--text-secondary)]">
-        {COMPANY_NAME} &middot; {APP_NAME}
+      <footer className="text-center py-8 text-xs text-[var(--md-grey)] border-t border-[#333] mt-10">
+        {COMPANY_NAME} | Dubai, UAE | Subcontractor Tender Portal
+        <br />
+        This form is confidential. Submissions are final and binding upon the terms stated above.
       </footer>
-    </>
+    </div>
   );
 }

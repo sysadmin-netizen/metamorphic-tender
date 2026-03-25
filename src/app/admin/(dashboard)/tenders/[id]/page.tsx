@@ -34,6 +34,11 @@ export default async function TenderDetailPage({
       .eq('tender_config_id', id),
   ]);
 
+  // Parse scope_items safely
+  const scopeItems: string[] = Array.isArray(tender.scope_items)
+    ? (tender.scope_items as string[])
+    : [];
+
   return (
     <div className="max-w-4xl space-y-8">
       {/* Header */}
@@ -110,6 +115,13 @@ export default async function TenderDetailPage({
         initialFormSchema={tender.form_schema}
         initialBoqTemplate={tender.boq_template as { code: string; description: string; unit: string; quantity: number }[]}
         initialCommercialTerms={tender.commercial_terms as Record<string, string>}
+        initialLocation={tender.location ?? ''}
+        initialJobSequence={tender.job_sequence ?? ''}
+        initialDependencies={tender.dependencies ?? ''}
+        initialMobilisationRequirement={tender.mobilisation_requirement ?? ''}
+        initialScopeItems={scopeItems}
+        initialBoqQtyEditable={tender.boq_qty_editable ?? false}
+        initialNotesEnabled={tender.notes_enabled ?? true}
       />
     </div>
   );

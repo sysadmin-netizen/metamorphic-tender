@@ -51,6 +51,13 @@ interface PatchTenderBody {
   closing_deadline?: string;
   is_active?: boolean;
   commercial_terms?: TableUpdate<'tender_configs'>['commercial_terms'];
+  location?: string | null;
+  job_sequence?: string | null;
+  dependencies?: string | null;
+  mobilisation_requirement?: string | null;
+  scope_items?: string[] | null;
+  boq_qty_editable?: boolean;
+  notes_enabled?: boolean;
 }
 
 function isPatchTenderBody(body: unknown): body is PatchTenderBody {
@@ -101,6 +108,13 @@ export async function PATCH(
   if (updateFields.closing_deadline !== undefined) updatePayload.closing_deadline = updateFields.closing_deadline;
   if (updateFields.is_active !== undefined) updatePayload.is_active = updateFields.is_active;
   if (updateFields.commercial_terms !== undefined) updatePayload.commercial_terms = updateFields.commercial_terms;
+  if (updateFields.location !== undefined) updatePayload.location = updateFields.location;
+  if (updateFields.job_sequence !== undefined) updatePayload.job_sequence = updateFields.job_sequence;
+  if (updateFields.dependencies !== undefined) updatePayload.dependencies = updateFields.dependencies;
+  if (updateFields.mobilisation_requirement !== undefined) updatePayload.mobilisation_requirement = updateFields.mobilisation_requirement;
+  if (updateFields.scope_items !== undefined) updatePayload.scope_items = updateFields.scope_items;
+  if (updateFields.boq_qty_editable !== undefined) updatePayload.boq_qty_editable = updateFields.boq_qty_editable;
+  if (updateFields.notes_enabled !== undefined) updatePayload.notes_enabled = updateFields.notes_enabled;
 
   const supabase = createServiceClient();
 

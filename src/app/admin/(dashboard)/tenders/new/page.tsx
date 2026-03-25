@@ -60,6 +60,15 @@ export default function NewTenderPage() {
   const [projectName, setProjectName] = useState('');
   const [closingDeadline, setClosingDeadline] = useState('');
 
+  // New project detail fields
+  const [location, setLocation] = useState('');
+  const [jobSequence, setJobSequence] = useState('');
+  const [dependencies, setDependencies] = useState('');
+  const [mobilisationRequirement, setMobilisationRequirement] = useState('');
+  const [scopeItemsText, setScopeItemsText] = useState('');
+  const [boqQtyEditable, setBoqQtyEditable] = useState(false);
+  const [notesEnabled, setNotesEnabled] = useState(true);
+
   // Visual editor state
   const [formSchema, setFormSchema] = useState<FormSchemaJson>(DEFAULT_SCHEMA);
   const [commercialTerms, setCommercialTerms] = useState<Record<string, string>>(
@@ -78,6 +87,12 @@ export default function NewTenderPage() {
       setError(null);
       setSaving(true);
 
+      // Parse scope items from textarea (one per line)
+      const scopeItems = scopeItemsText
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+
       try {
         const body = {
           package_code: packageCode.trim(),
@@ -87,6 +102,13 @@ export default function NewTenderPage() {
           form_schema: formSchema,
           boq_template: boqTemplate.filter((row) => row.code.trim().length > 0),
           commercial_terms: commercialTerms,
+          location: location.trim() || null,
+          job_sequence: jobSequence.trim() || null,
+          dependencies: dependencies.trim() || null,
+          mobilisation_requirement: mobilisationRequirement.trim() || null,
+          scope_items: scopeItems.length > 0 ? scopeItems : null,
+          boq_qty_editable: boqQtyEditable,
+          notes_enabled: notesEnabled,
         };
 
         const res = await fetch('/api/tenders', {
@@ -109,7 +131,12 @@ export default function NewTenderPage() {
         setSaving(false);
       }
     },
-    [packageCode, packageName, projectName, closingDeadline, formSchema, boqTemplate, commercialTerms, router],
+    [
+      packageCode, packageName, projectName, closingDeadline, formSchema,
+      boqTemplate, commercialTerms, location, jobSequence, dependencies,
+      mobilisationRequirement, scopeItemsText, boqQtyEditable, notesEnabled,
+      router,
+    ],
   );
 
   return (
@@ -191,7 +218,117 @@ export default function NewTenderPage() {
           </div>
         </section>
 
-        {/* Form schema — visual builder */}
+        {/* Project Details */}
+        <section className="space-y-4 rounded-lg border border-stone-700 bg-stone-800/50 p-6">
+          <h2 className="text-lg font-semibold text-stone-200">Project Details</h2>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="location" className="block text-sm font-medium text-stone-400 mb-1">
+                Location
+              </label>
+              <input
+                id="location"
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm text-stone-200 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                placeholder="Jubail Island, Abu Dhabi"
+              />
+            </div>
+            <div>
+              <label htmlFor="job_sequence" className="block text-sm font-medium text-stone-400 mb-1">
+                Job Sequence
+              </label>
+              <input
+                id="job_sequence"
+                type="text"
+                value={jobSequence}
+                onChange={(e) => setJobSequence(e.target.value)}
+                className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm text-stone-200 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                placeholder="JS02 → JS04"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="dependencies" className="block text-sm font-medium text-stone-400 mb-1">
+              Dependencies
+            </label>
+            <input
+              id="dependencies"
+              type="text"
+              value={dependencies}
+              onChange={(e) => setDependencies(e.target.value)}
+              className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm text-stone-200 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              placeholder="PKG-A waterproofing sign-off required"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="mobilisation_requirement" className="block text-sm font-medium text-stone-400 mb-1">
+              Mobilisation Requirement
+            </label>
+            <input
+              id="mobilisation_requirement"
+              type="text"
+              value={mobilisationRequirement}
+              onChange={(e) => setMobilisationRequirement(e.target.value)}
+              className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm text-stone-200 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              placeholder="Within 24 hours of award"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="scope_items" className="block text-sm font-medium text-stone-400 mb-1">
+              Scope Items (one per line)
+            </label>
+            <textarea
+              id="scope_items"
+              value={scopeItemsText}
+              onChange={(e) => setScopeItemsText(e.target.value)}
+              rows={5}
+              className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm text-stone-200 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 resize-y"
+              placeholder={"Blockwork — pool shell walls, planter walls\nSteel reinforcement — rebar tying, BRC mesh\nFormwork & shuttering"}
+            />
+            <p className="mt-1 text-xs text-stone-500">
+              Each line becomes a bullet point on the vendor form.
+            </p>
+          </div>
+        </section>
+
+        {/* Form Options */}
+        <section className="space-y-4 rounded-lg border border-stone-700 bg-stone-800/50 p-6">
+          <h2 className="text-lg font-semibold text-stone-200">Form Options</h2>
+
+          <div className="flex items-center gap-3">
+            <input
+              id="boq_qty_editable"
+              type="checkbox"
+              checked={boqQtyEditable}
+              onChange={(e) => setBoqQtyEditable(e.target.checked)}
+              className="h-4 w-4 rounded border-stone-600 bg-stone-900 accent-amber-500"
+            />
+            <label htmlFor="boq_qty_editable" className="text-sm text-stone-300 cursor-pointer">
+              Vendor can edit quantities (vendors assess quantities on site)
+            </label>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              id="notes_enabled"
+              type="checkbox"
+              checked={notesEnabled}
+              onChange={(e) => setNotesEnabled(e.target.checked)}
+              className="h-4 w-4 rounded border-stone-600 bg-stone-900 accent-amber-500"
+            />
+            <label htmlFor="notes_enabled" className="text-sm text-stone-300 cursor-pointer">
+              Enable additional notes textarea
+            </label>
+          </div>
+        </section>
+
+        {/* Form schema -- visual builder */}
         <section className="rounded-lg border border-stone-700 bg-stone-800/50 p-6">
           <SchemaEditor
             initialSchema={formSchema}
@@ -199,7 +336,7 @@ export default function NewTenderPage() {
           />
         </section>
 
-        {/* BOQ template — visual table */}
+        {/* BOQ template -- visual table */}
         <section className="rounded-lg border border-stone-700 bg-stone-800/50 p-6">
           <BoqEditor
             initialTemplate={boqTemplate}
@@ -207,7 +344,7 @@ export default function NewTenderPage() {
           />
         </section>
 
-        {/* Commercial terms — visual key-value editor */}
+        {/* Commercial terms -- visual key-value editor */}
         <section className="rounded-lg border border-stone-700 bg-stone-800/50 p-6">
           <CommercialTermsEditor
             initialTerms={commercialTerms}

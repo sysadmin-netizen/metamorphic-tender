@@ -60,6 +60,13 @@ interface CreateTenderBody {
   boq_template: TableInsert<'tender_configs'>['boq_template'];
   closing_deadline: string;
   commercial_terms?: TableInsert<'tender_configs'>['commercial_terms'];
+  location?: string | null;
+  job_sequence?: string | null;
+  dependencies?: string | null;
+  mobilisation_requirement?: string | null;
+  scope_items?: string[] | null;
+  boq_qty_editable?: boolean;
+  notes_enabled?: boolean;
 }
 
 function isCreateTenderBody(body: unknown): body is CreateTenderBody {
@@ -115,6 +122,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       boq_template: body.boq_template,
       closing_deadline: body.closing_deadline,
       commercial_terms: body.commercial_terms ?? {},
+      location: body.location ?? null,
+      job_sequence: body.job_sequence ?? null,
+      dependencies: body.dependencies ?? null,
+      mobilisation_requirement: body.mobilisation_requirement ?? null,
+      scope_items: body.scope_items ?? null,
+      boq_qty_editable: body.boq_qty_editable ?? false,
+      notes_enabled: body.notes_enabled ?? true,
     })
     .select()
     .single();

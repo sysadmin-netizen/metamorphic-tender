@@ -17,6 +17,13 @@ interface TenderDetailEditorProps {
   initialFormSchema: FormSchemaJson;
   initialBoqTemplate: BoqLineItem[];
   initialCommercialTerms: Record<string, string>;
+  initialLocation: string;
+  initialJobSequence: string;
+  initialDependencies: string;
+  initialMobilisationRequirement: string;
+  initialScopeItems: string[];
+  initialBoqQtyEditable: boolean;
+  initialNotesEnabled: boolean;
 }
 
 interface PatchResponse {
@@ -36,11 +43,27 @@ export function TenderDetailEditor({
   initialFormSchema,
   initialBoqTemplate,
   initialCommercialTerms,
+  initialLocation,
+  initialJobSequence,
+  initialDependencies,
+  initialMobilisationRequirement,
+  initialScopeItems,
+  initialBoqQtyEditable,
+  initialNotesEnabled,
 }: TenderDetailEditorProps) {
   const router = useRouter();
   const [currentUpdatedAt, setCurrentUpdatedAt] = useState(updatedAt);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Project detail fields
+  const [location, setLocation] = useState(initialLocation);
+  const [jobSequence, setJobSequence] = useState(initialJobSequence);
+  const [dependencies, setDependencies] = useState(initialDependencies);
+  const [mobilisationRequirement, setMobilisationRequirement] = useState(initialMobilisationRequirement);
+  const [scopeItemsText, setScopeItemsText] = useState(initialScopeItems.join('\n'));
+  const [boqQtyEditable, setBoqQtyEditable] = useState(initialBoqQtyEditable);
+  const [notesEnabled, setNotesEnabled] = useState(initialNotesEnabled);
 
   /**
    * PATCH the tender with optimistic concurrency (EC-23).
@@ -104,6 +127,23 @@ export function TenderDetailEditor({
     [patchTender],
   );
 
+  const handleSaveProjectDetails = useCallback(() => {
+    const scopeItems = scopeItemsText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    void patchTender({
+      location: location.trim() || null,
+      job_sequence: jobSequence.trim() || null,
+      dependencies: dependencies.trim() || null,
+      mobilisation_requirement: mobilisationRequirement.trim() || null,
+      scope_items: scopeItems.length > 0 ? scopeItems : null,
+      boq_qty_editable: boqQtyEditable,
+      notes_enabled: notesEnabled,
+    });
+  }, [patchTender, location, jobSequence, dependencies, mobilisationRequirement, scopeItemsText, boqQtyEditable, notesEnabled]);
+
   return (
     <div className="space-y-8">
       {/* Status message */}
@@ -126,7 +166,122 @@ export function TenderDetailEditor({
         </div>
       )}
 
-      {/* Form Schema Editor — visual builder */}
+      {/* Project Details Editor */}
+      <section className="space-y-4 rounded-lg border border-stone-700 bg-stone-800/50 p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-stone-200">Project Details</h2>
+          <button
+            type="button"
+            onClick={handleSaveProjectDetails}
+            disabled={saving}
+            className="rounded-md bg-amber-600 px-4 py-1.5 text-sm font-semibold text-stone-900 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Save Details
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="ed_location" className="block text-sm font-medium text-stone-400 mb-1">
+              Location
+            </label>
+            <input
+              id="ed_location"
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm text-stone-200 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              placeholder="Jubail Island, Abu Dhabi"
+            />
+          </div>
+          <div>
+            <label htmlFor="ed_job_sequence" className="block text-sm font-medium text-stone-400 mb-1">
+              Job Sequence
+            </label>
+            <input
+              id="ed_job_sequence"
+              type="text"
+              value={jobSequence}
+              onChange={(e) => setJobSequence(e.target.value)}
+              className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm text-stone-200 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              placeholder="JS02 → JS04"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="ed_dependencies" className="block text-sm font-medium text-stone-400 mb-1">
+            Dependencies
+          </label>
+          <input
+            id="ed_dependencies"
+            type="text"
+            value={dependencies}
+            onChange={(e) => setDependencies(e.target.value)}
+            className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm text-stone-200 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+            placeholder="PKG-A waterproofing sign-off required"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="ed_mob_req" className="block text-sm font-medium text-stone-400 mb-1">
+            Mobilisation Requirement
+          </label>
+          <input
+            id="ed_mob_req"
+            type="text"
+            value={mobilisationRequirement}
+            onChange={(e) => setMobilisationRequirement(e.target.value)}
+            className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm text-stone-200 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+            placeholder="Within 24 hours of award"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="ed_scope" className="block text-sm font-medium text-stone-400 mb-1">
+            Scope Items (one per line)
+          </label>
+          <textarea
+            id="ed_scope"
+            value={scopeItemsText}
+            onChange={(e) => setScopeItemsText(e.target.value)}
+            rows={5}
+            className="w-full rounded-md border border-stone-700 bg-stone-900 px-3 py-2.5 text-sm text-stone-200 placeholder:text-stone-600 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 resize-y"
+            placeholder={"Blockwork — pool shell walls\nSteel reinforcement — rebar tying"}
+          />
+          <p className="mt-1 text-xs text-stone-500">
+            Each line becomes a bullet point on the vendor form.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <input
+            id="ed_boq_qty"
+            type="checkbox"
+            checked={boqQtyEditable}
+            onChange={(e) => setBoqQtyEditable(e.target.checked)}
+            className="h-4 w-4 rounded border-stone-600 bg-stone-900 accent-amber-500"
+          />
+          <label htmlFor="ed_boq_qty" className="text-sm text-stone-300 cursor-pointer">
+            Vendor can edit quantities (vendors assess quantities on site)
+          </label>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <input
+            id="ed_notes"
+            type="checkbox"
+            checked={notesEnabled}
+            onChange={(e) => setNotesEnabled(e.target.checked)}
+            className="h-4 w-4 rounded border-stone-600 bg-stone-900 accent-amber-500"
+          />
+          <label htmlFor="ed_notes" className="text-sm text-stone-300 cursor-pointer">
+            Enable additional notes textarea
+          </label>
+        </div>
+      </section>
+
+      {/* Form Schema Editor -- visual builder */}
       <section className="rounded-lg border border-stone-700 bg-stone-800/50 p-6">
         <SchemaEditor
           initialSchema={initialFormSchema}
@@ -134,7 +289,7 @@ export function TenderDetailEditor({
         />
       </section>
 
-      {/* BOQ Template Editor — visual table */}
+      {/* BOQ Template Editor -- visual table */}
       <section className="rounded-lg border border-stone-700 bg-stone-800/50 p-6">
         <BoqEditor
           initialTemplate={initialBoqTemplate}
@@ -142,7 +297,7 @@ export function TenderDetailEditor({
         />
       </section>
 
-      {/* Commercial Terms — visual key-value editor */}
+      {/* Commercial Terms -- visual key-value editor */}
       <section className="rounded-lg border border-stone-700 bg-stone-800/50 p-6">
         <CommercialTermsEditor
           initialTerms={initialCommercialTerms}

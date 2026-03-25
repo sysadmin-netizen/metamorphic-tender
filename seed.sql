@@ -1,3 +1,12 @@
+-- MIGRATION: Add project detail columns to tender_configs
+ALTER TABLE tender_configs ADD COLUMN IF NOT EXISTS location TEXT;
+ALTER TABLE tender_configs ADD COLUMN IF NOT EXISTS job_sequence TEXT;
+ALTER TABLE tender_configs ADD COLUMN IF NOT EXISTS dependencies TEXT;
+ALTER TABLE tender_configs ADD COLUMN IF NOT EXISTS mobilisation_requirement TEXT;
+ALTER TABLE tender_configs ADD COLUMN IF NOT EXISTS scope_items JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE tender_configs ADD COLUMN IF NOT EXISTS boq_qty_editable BOOLEAN DEFAULT false;
+ALTER TABLE tender_configs ADD COLUMN IF NOT EXISTS notes_enabled BOOLEAN DEFAULT true;
+
 -- SEED DATA: PKG-A Tender Config + 5 Vendors + Invites
 
 -- 1. Insert PKG-A tender config

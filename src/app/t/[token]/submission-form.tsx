@@ -2,15 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
 import { toast, ToastContainer } from '@/components/ui/toast';
+import { BoqTable } from '@/components/boq-table';
+import { CommercialTerms } from '@/components/commercial-terms';
 import type {
   FormSchemaJson,
   BoqTemplateJson,
+  CommercialTermsJson,
 } from '@/lib/types/database';
 import type { FormField } from '@/lib/types/form-schema';
 import { validateFormData, validateBoqData } from '@/lib/validation';
@@ -24,6 +22,10 @@ interface TenderConfigSlice {
   boq_template: BoqTemplateJson;
   closing_deadline: string;
   package_name: string;
+  package_code: string;
+  commercial_terms: Record<string, unknown>;
+  boq_qty_editable: boolean;
+  notes_enabled: boolean;
 }
 
 interface VendorDataSlice {
@@ -47,11 +49,14 @@ interface BoqRateEntry {
   code: string;
   rate: number;
   total: number;
+  quantity?: number;
 }
 
 interface DraftState {
   formValues: Record<string, unknown>;
   boqRates: Record<string, number>;
+  boqQuantities: Record<string, number>;
+  notes: string;
   savedAt: number;
 }
 
@@ -83,10 +88,10 @@ function buildPrefillValues(
 }
 
 // ---------------------------------------------------------------------------
-// Form field renderer
+// Themed form field renderer (gold+black)
 // ---------------------------------------------------------------------------
 
-function FormFieldRenderer({
+function VendorFormField({
   field,
   value,
   error,
@@ -97,166 +102,109 @@ function FormFieldRenderer({
   error?: string;
   onChange: (id: string, value: unknown) => void;
 }) {
+  const baseInputClass =
+    'w-full bg-[var(--md-dark)] border border-[#555] text-[var(--text-inverse)] px-3.5 py-3 text-sm font-[inherit] transition-colors duration-200 focus:outline-none focus:border-[var(--accent)] placeholder:text-[var(--md-grey)]';
+  const errorInputClass = error ? 'border-[var(--md-red)]' : '';
+
+  const label = (
+    <label className="block text-xs uppercase tracking-[0.5px] text-[var(--md-grey)] mb-1.5">
+      {field.label}
+      {field.required && <span className="text-[var(--accent)] ml-1">*</span>}
+    </label>
+  );
+
   switch (field.type) {
     case 'select':
     case 'radio':
       return (
-        <Select
-          label={field.label}
-          options={field.options ?? []}
-          required={field.required}
-          hint={field.hint}
-          error={error}
-          value={String(value ?? '')}
-          onChange={(e) => onChange(field.id, e.target.value)}
-        />
+        <div className="flex flex-col">
+          {label}
+          <select
+            required={field.required}
+            value={String(value ?? '')}
+            onChange={(e) => onChange(field.id, e.target.value)}
+            className={`${baseInputClass} ${errorInputClass}`}
+          >
+            <option value="">— Select —</option>
+            {(field.options ?? []).map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          {field.hint && <span className="mt-1 text-xs text-[var(--md-grey)]">{field.hint}</span>}
+          {error && <span className="mt-1 text-xs text-[var(--md-red)]">{error}</span>}
+        </div>
       );
     case 'checkbox':
       return (
-        <Checkbox
-          label={field.label}
-          checked={Boolean(value)}
-          required={field.required}
-          error={error}
-          onChange={(checked) => onChange(field.id, checked)}
-        />
+        <div className="flex items-start gap-2 py-2">
+          <input
+            type="checkbox"
+            checked={Boolean(value)}
+            required={field.required}
+            onChange={(e) => onChange(field.id, e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
+          />
+          <div>
+            <span className="text-sm text-[var(--text-inverse)]">
+              {field.label}
+              {field.required && <span className="text-[var(--accent)] ml-1">*</span>}
+            </span>
+            {error && <span className="block mt-1 text-xs text-[var(--md-red)]">{error}</span>}
+          </div>
+        </div>
       );
     case 'textarea':
       return (
-        <Textarea
-          label={field.label}
-          required={field.required}
-          placeholder={field.placeholder}
-          hint={field.hint}
-          error={error}
-          rows={field.rows ?? 4}
-          value={String(value ?? '')}
-          onChange={(e) => onChange(field.id, e.target.value)}
-        />
+        <div className="flex flex-col">
+          {label}
+          <textarea
+            required={field.required}
+            placeholder={field.placeholder}
+            rows={field.rows ?? 4}
+            value={String(value ?? '')}
+            onChange={(e) => onChange(field.id, e.target.value)}
+            className={`${baseInputClass} ${errorInputClass} resize-y`}
+          />
+          {field.hint && <span className="mt-1 text-xs text-[var(--md-grey)]">{field.hint}</span>}
+          {error && <span className="mt-1 text-xs text-[var(--md-red)]">{error}</span>}
+        </div>
       );
     case 'number':
       return (
-        <Input
-          label={field.label}
-          type="number"
-          required={field.required}
-          placeholder={field.placeholder}
-          hint={field.hint}
-          error={error}
-          min={field.min}
-          max={field.max}
-          step={field.step}
-          value={String(value ?? '')}
-          onChange={(e) => onChange(field.id, e.target.value === '' ? '' : Number(e.target.value))}
-        />
+        <div className="flex flex-col">
+          {label}
+          <input
+            type="number"
+            required={field.required}
+            placeholder={field.placeholder}
+            min={field.min}
+            max={field.max}
+            step={field.step}
+            value={String(value ?? '')}
+            onChange={(e) => onChange(field.id, e.target.value === '' ? '' : Number(e.target.value))}
+            className={`${baseInputClass} ${errorInputClass}`}
+          />
+          {field.hint && <span className="mt-1 text-xs text-[var(--md-grey)]">{field.hint}</span>}
+          {error && <span className="mt-1 text-xs text-[var(--md-red)]">{error}</span>}
+        </div>
       );
     default:
       return (
-        <Input
-          label={field.label}
-          type={field.type}
-          required={field.required}
-          placeholder={field.placeholder}
-          hint={field.hint}
-          error={error}
-          value={String(value ?? '')}
-          onChange={(e) => onChange(field.id, e.target.value)}
-        />
+        <div className="flex flex-col">
+          {label}
+          <input
+            type={field.type}
+            required={field.required}
+            placeholder={field.placeholder}
+            value={String(value ?? '')}
+            onChange={(e) => onChange(field.id, e.target.value)}
+            className={`${baseInputClass} ${errorInputClass}`}
+          />
+          {field.hint && <span className="mt-1 text-xs text-[var(--md-grey)]">{field.hint}</span>}
+          {error && <span className="mt-1 text-xs text-[var(--md-red)]">{error}</span>}
+        </div>
       );
   }
-}
-
-// ---------------------------------------------------------------------------
-// BOQ Table
-// ---------------------------------------------------------------------------
-
-function BoqTable({
-  template,
-  rates,
-  onRateChange,
-}: {
-  template: BoqTemplateJson;
-  rates: Record<string, number>;
-  onRateChange: (code: string, rate: number) => void;
-}) {
-  return (
-    <div className="overflow-x-auto rounded-lg border border-stone-200 bg-white table-scroll">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-stone-50">
-            <th className="sticky left-0 z-10 bg-stone-50 whitespace-nowrap px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500">
-              Item
-            </th>
-            <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-stone-500">
-              Description
-            </th>
-            <th className="whitespace-nowrap px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-stone-500">
-              Unit
-            </th>
-            <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-stone-500">
-              Qty
-            </th>
-            <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-stone-500">
-              Rate (AED)
-            </th>
-            <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-stone-500">
-              Total (AED)
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {template.map((item, idx) => {
-            const rate = rates[item.code] ?? 0;
-            const lineTotal = rate * item.quantity;
-            return (
-              <tr
-                key={item.code}
-                className={idx % 2 === 0 ? 'bg-white' : 'bg-stone-50/50'}
-              >
-                <td className="sticky left-0 z-10 bg-inherit whitespace-nowrap px-4 py-3 font-mono text-xs text-stone-600">
-                  {item.code}
-                </td>
-                <td className="px-4 py-3 text-stone-900 min-w-[200px]">
-                  {item.description}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-center text-stone-600">
-                  {item.unit}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right font-mono tabular-nums text-stone-900">
-                  {item.quantity.toLocaleString()}
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right">
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={rate || ''}
-                    placeholder="0.00"
-                    onChange={(e) =>
-                      onRateChange(
-                        item.code,
-                        e.target.value === '' ? 0 : Number(e.target.value),
-                      )
-                    }
-                    className="w-28 rounded-md border border-stone-300 px-2 py-1.5 text-right font-mono text-[16px] tabular-nums text-stone-900 focus:border-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-700"
-                    aria-label={`Rate for ${item.code}`}
-                  />
-                </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right font-mono tabular-nums font-medium text-stone-900">
-                  {lineTotal > 0
-                    ? lineTotal.toLocaleString('en-AE', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })
-                    : '\u2014'}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -279,6 +227,9 @@ export function SubmissionForm({
     buildPrefillValues(tenderConfig.form_schema, vendorData),
   );
   const [boqRates, setBoqRates] = useState<Record<string, number>>({});
+  const [boqQuantities, setBoqQuantities] = useState<Record<string, number>>({});
+  const [notes, setNotes] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -300,6 +251,8 @@ export function SubmissionForm({
         const draft: DraftState = JSON.parse(saved);
         if (draft.formValues) setFormValues(draft.formValues);
         if (draft.boqRates) setBoqRates(draft.boqRates);
+        if (draft.boqQuantities) setBoqQuantities(draft.boqQuantities);
+        if (draft.notes) setNotes(draft.notes);
         setRestoredFromDraft(true);
         toast.info('Your progress has been restored.');
       }
@@ -325,6 +278,8 @@ export function SubmissionForm({
         const draft: DraftState = {
           formValues,
           boqRates,
+          boqQuantities,
+          notes,
           savedAt: Date.now(),
         };
         sessionStorage.setItem(draftKey, JSON.stringify(draft));
@@ -338,7 +293,7 @@ export function SubmissionForm({
         clearTimeout(saveTimerRef.current);
       }
     };
-  }, [formValues, boqRates, draftKey, submitted]);
+  }, [formValues, boqRates, boqQuantities, notes, draftKey, submitted]);
 
   // -----------------------------------------------------------------------
   // Field change handler
@@ -359,10 +314,14 @@ export function SubmissionForm({
   );
 
   // -----------------------------------------------------------------------
-  // BOQ rate change handler
+  // BOQ rate and quantity change handlers
   // -----------------------------------------------------------------------
   const handleRateChange = useCallback((code: string, rate: number) => {
     setBoqRates((prev) => ({ ...prev, [code]: rate }));
+  }, []);
+
+  const handleQtyChange = useCallback((code: string, qty: number) => {
+    setBoqQuantities((prev) => ({ ...prev, [code]: qty }));
   }, []);
 
   // -----------------------------------------------------------------------
@@ -372,10 +331,13 @@ export function SubmissionForm({
     let total = 0;
     for (const item of tenderConfig.boq_template) {
       const rate = boqRates[item.code] ?? 0;
-      total += rate * item.quantity;
+      const qty = tenderConfig.boq_qty_editable
+        ? (boqQuantities[item.code] ?? 0)
+        : item.quantity;
+      total += rate * qty;
     }
     return total;
-  }, [boqRates, tenderConfig.boq_template]);
+  }, [boqRates, boqQuantities, tenderConfig.boq_template, tenderConfig.boq_qty_editable]);
 
   // -----------------------------------------------------------------------
   // Submit handler
@@ -399,11 +361,18 @@ export function SubmissionForm({
       const formErrors = validateFormData(formValues, formSchema);
 
       const boqEntries: BoqRateEntry[] = tenderConfig.boq_template.map(
-        (item) => ({
-          code: item.code,
-          rate: boqRates[item.code] ?? 0,
-          total: (boqRates[item.code] ?? 0) * item.quantity,
-        }),
+        (item) => {
+          const rate = boqRates[item.code] ?? 0;
+          const qty = tenderConfig.boq_qty_editable
+            ? (boqQuantities[item.code] ?? 0)
+            : item.quantity;
+          return {
+            code: item.code,
+            rate,
+            total: rate * qty,
+            ...(tenderConfig.boq_qty_editable ? { quantity: qty } : {}),
+          };
+        },
       );
 
       const boqErrors = validateBoqData(
@@ -416,12 +385,16 @@ export function SubmissionForm({
         })),
       );
 
+      // Check terms acceptance
+      if (!termsAccepted) {
+        formErrors.push('You must accept the commercial terms to submit.');
+      }
+
       const allErrors = [...formErrors, ...boqErrors];
       if (allErrors.length > 0) {
         // Build field-level error map
         const errorMap: Record<string, string> = {};
         for (const err of formErrors) {
-          // Try to match error to field by label
           for (const section of tenderConfig.form_schema.sections) {
             for (const field of section.fields) {
               if (err.startsWith(field.label)) {
@@ -429,6 +402,9 @@ export function SubmissionForm({
               }
             }
           }
+        }
+        if (!termsAccepted) {
+          errorMap['terms_accepted'] = 'You must accept the commercial terms to submit.';
         }
         setErrors(errorMap);
         toast.error(`Please fix ${allErrors.length} error${allErrors.length > 1 ? 's' : ''} before submitting.`);
@@ -445,7 +421,10 @@ export function SubmissionForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             token,
-            form_data: formValues,
+            form_data: {
+              ...formValues,
+              ...(notes.trim() ? { additional_notes: notes.trim() } : {}),
+            },
             boq_data: boqEntries,
             schema_hash: schemaHash,
           }),
@@ -508,6 +487,9 @@ export function SubmissionForm({
     [
       formValues,
       boqRates,
+      boqQuantities,
+      notes,
+      termsAccepted,
       isSubmitting,
       token,
       schemaHash,
@@ -518,69 +500,93 @@ export function SubmissionForm({
   );
 
   // -----------------------------------------------------------------------
-  // Render
+  // Render — gold+black themed form matching reference HTML
   // -----------------------------------------------------------------------
   return (
     <>
       <ToastContainer />
 
       {restoredFromDraft && (
-        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <div className="mb-6 border border-[var(--accent)] bg-[var(--md-dark)] px-4 py-3 text-sm text-[var(--accent)]">
           Draft restored from your previous session.
         </div>
       )}
 
       <form onSubmit={handleSubmit} noValidate>
-        {/* Form sections */}
+        {/* Form sections with 2-column grid layout */}
         {tenderConfig.form_schema.sections.map((section) => (
-          <fieldset
-            key={section.id}
-            className="mb-6 rounded-lg border border-stone-200 bg-white p-5"
-          >
-            <legend className="px-2 text-sm font-semibold text-[var(--text-primary)]">
+          <div key={section.id} className="mb-8">
+            <h3 className="text-[var(--accent)] text-base font-semibold uppercase tracking-wider border-b border-[#444] pb-2 mb-5">
               {section.title}
-            </legend>
+            </h3>
             {section.description && (
-              <p className="mb-4 text-xs text-[var(--text-secondary)]">
+              <p className="mb-4 text-xs text-[var(--md-grey)]">
                 {section.description}
               </p>
             )}
-            <div className="space-y-4">
-              {section.fields.map((field) => (
-                <FormFieldRenderer
-                  key={field.id}
-                  field={field as FormField}
-                  value={formValues[field.id]}
-                  error={errors[field.id]}
-                  onChange={handleFieldChange}
-                />
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {section.fields.map((field) => {
+                const isFullWidth =
+                  field.type === 'textarea' ||
+                  field.type === 'checkbox';
+                return (
+                  <div
+                    key={field.id}
+                    className={isFullWidth ? 'sm:col-span-2' : ''}
+                  >
+                    <VendorFormField
+                      field={field as FormField}
+                      value={formValues[field.id]}
+                      error={errors[field.id]}
+                      onChange={handleFieldChange}
+                    />
+                  </div>
+                );
+              })}
             </div>
-          </fieldset>
+          </div>
         ))}
+
+        {/* Package Code — locked field */}
+        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-col">
+            <label className="block text-xs uppercase tracking-[0.5px] text-[var(--md-grey)] mb-1.5">
+              Package Code
+            </label>
+            <input
+              type="text"
+              value={tenderConfig.package_code}
+              disabled
+              className="w-full bg-[#333] border border-[#555] text-[var(--accent)] font-semibold px-3.5 py-3 text-sm cursor-not-allowed"
+            />
+          </div>
+        </div>
 
         {/* BOQ Section */}
         {tenderConfig.boq_template.length > 0 && (
-          <div className="mb-6">
-            <h2 className="mb-3 text-sm font-semibold text-[var(--text-primary)]">
-              Bill of Quantities
-            </h2>
+          <div className="mb-8">
+            <h3 className="text-[var(--accent)] text-base font-semibold uppercase tracking-wider border-b border-[#444] pb-2 mb-5">
+              Bill of Quantities — Rates{tenderConfig.boq_qty_editable ? ' & Quantities' : ''}
+            </h3>
             <BoqTable
               template={tenderConfig.boq_template}
               rates={boqRates}
+              quantities={boqQuantities}
               onRateChange={handleRateChange}
+              onQtyChange={handleQtyChange}
+              errors={{}}
+              qtyEditable={tenderConfig.boq_qty_editable}
             />
           </div>
         )}
 
-        {/* Grand total (sticky on mobile) */}
-        <div className="sticky-bottom mb-6 rounded-lg border border-stone-200 bg-white p-4 shadow-sm sm:static sm:shadow-none">
+        {/* Grand total */}
+        <div className="mb-8 bg-[var(--md-dark)] border-t-2 border-[var(--accent)] p-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-[var(--text-secondary)]">
-              Grand Total
+            <span className="text-sm font-semibold uppercase tracking-wider text-[var(--text-inverse)]">
+              Grand Total (AED)
             </span>
-            <span className="text-lg font-mono font-bold tabular-nums text-[var(--text-primary)]">
-              AED{' '}
+            <span className="text-lg font-mono font-bold tabular-nums text-[var(--accent)]">
               {grandTotal.toLocaleString('en-AE', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
@@ -589,19 +595,47 @@ export function SubmissionForm({
           </div>
         </div>
 
-        {/* Submit button */}
-        <div className="pb-8">
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            loading={isSubmitting}
-            disabled={isSubmitting || submitted}
-            className="w-full sm:w-auto sm:min-w-[200px] min-h-[48px]"
-          >
-            Submit Tender
-          </Button>
+        {/* Commercial Terms — inline numbered box */}
+        <div className="mb-8">
+          <h3 className="text-[var(--accent)] text-base font-semibold uppercase tracking-wider border-b border-[#444] pb-2 mb-5">
+            Commercial Terms — Acknowledgement
+          </h3>
+          <CommercialTerms
+            terms={tenderConfig.commercial_terms}
+            accepted={termsAccepted}
+            onAcceptChange={setTermsAccepted}
+            error={errors['terms_accepted']}
+          />
         </div>
+
+        {/* Additional Notes (Optional) */}
+        {tenderConfig.notes_enabled && (
+          <div className="mb-8">
+            <h3 className="text-[var(--accent)] text-base font-semibold uppercase tracking-wider border-b border-[#444] pb-2 mb-5">
+              Additional Notes (Optional)
+            </h3>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={4}
+              placeholder="Any clarifications, exclusions, or assumptions..."
+              className="w-full bg-[var(--md-dark)] border border-[#555] text-[var(--text-inverse)] px-3.5 py-3 text-sm font-[inherit] transition-colors duration-200 focus:outline-none focus:border-[var(--accent)] placeholder:text-[var(--md-grey)] resize-y"
+            />
+          </div>
+        )}
+
+        {/* Submit button */}
+        <button
+          type="submit"
+          disabled={isSubmitting || submitted}
+          className="w-full bg-[var(--accent)] text-[var(--bg-primary)] border-none py-4 text-base font-bold uppercase tracking-[2px] cursor-pointer transition-colors duration-200 hover:bg-[var(--accent-hover)] disabled:bg-[#555] disabled:text-[#888] disabled:cursor-not-allowed"
+        >
+          {isSubmitting
+            ? 'SUBMITTING...'
+            : submitted
+              ? 'SUBMITTED'
+              : `Submit Tender — ${tenderConfig.package_code}`}
+        </button>
       </form>
     </>
   );
