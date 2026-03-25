@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { createServiceClient } from '@/lib/supabase/server';
 import { formatGST } from '@/lib/date';
 import { STATUS_COLORS } from '@/lib/constants';
-import { InviteActions, ReissueButton } from './actions';
+import { InviteActions, ReissueButton, CopyLinkButton } from './actions';
 import type { VendorTenderStatus } from '@/lib/types/database';
 
 export default async function TenderInvitePage({
@@ -130,9 +130,14 @@ export default async function TenderInvitePage({
                     {formatGST(inv.expires_at)}
                   </td>
                   <td className="px-4 py-2.5 whitespace-nowrap">
-                    {canReissue && (
-                      <ReissueButton vendorTenderId={inv.id} />
-                    )}
+                    <div className="flex items-center gap-2">
+                      {inv.status !== 'submitted' && (
+                        <CopyLinkButton token={inv.token} />
+                      )}
+                      {canReissue && (
+                        <ReissueButton vendorTenderId={inv.id} />
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

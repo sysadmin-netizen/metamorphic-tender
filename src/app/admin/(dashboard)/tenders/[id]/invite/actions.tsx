@@ -25,6 +25,55 @@ interface QuickInviteResponse {
 }
 
 /* ---------------------------------------------------------------
+   Component: Copy Link button — copies vendor invite URL to clipboard
+   --------------------------------------------------------------- */
+
+interface CopyLinkButtonProps {
+  token: string;
+}
+
+export function CopyLinkButton({ token }: CopyLinkButtonProps) {
+  const [copied, setCopied] = useState(false);
+  const appUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
+  const handleCopy = useCallback(async () => {
+    const link = `${appUrl}/t/${token}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+    }
+  }, [token, appUrl]);
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+        copied
+          ? 'border-green-600 bg-green-600/10 text-green-400'
+          : 'border-stone-600 bg-stone-800 text-stone-400 hover:bg-stone-700 hover:text-stone-200'
+      }`}
+      title="Copy invite link"
+    >
+      {copied ? (
+        <span className="flex items-center gap-1">
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+          Copied
+        </span>
+      ) : (
+        <span className="flex items-center gap-1">
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-3.02a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364L4.25 8.688" /></svg>
+          Copy Link
+        </span>
+      )}
+    </button>
+  );
+}
+
+/* ---------------------------------------------------------------
    Component: Re-issue button (EC-25)
    POST /api/invites/reissue with JSON body { vendor_tender_id }
    --------------------------------------------------------------- */
@@ -267,7 +316,7 @@ export function InviteActions({ tenderId }: InviteActionsProps) {
           ) : (
             <>
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m9.86-3.02a4.5 4.5 0 00-1.242-7.244l-4.5-4.5a4.5 4.5 0 00-6.364 6.364L4.25 8.688" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
               Generate Link
             </>
