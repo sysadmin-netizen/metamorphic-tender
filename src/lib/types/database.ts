@@ -337,7 +337,9 @@ export interface Database {
       };
       reissue_vendor_invite: {
         Args: {
-          p_vendor_tender_id: string;
+          p_vendor_id: string;
+          p_tender_id: string;
+          p_expiry_hours?: number;
         };
         Returns: string;
       };

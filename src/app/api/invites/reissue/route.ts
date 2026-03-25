@@ -45,18 +45,39 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const supabase = createServiceClient();
 
+  // Look up vendor_id and tender_config_id from the vendor_tender record
+  const { data: vt, error: vtError } = await supabase
+    .from('vendor_tenders')
+    .select('vendor_id, tender_config_id, status')
+    .eq('id', body.vendor_tender_id)
+    .single();
+
+  if (vtError || !vt) {
+    return NextResponse.json(
+      { success: false, error: 'Invite not found' },
+      { status: 404 }
+    );
+  }
+
+  if (vt.status === 'submitted') {
+    return NextResponse.json(
+      { success: false, error: 'Cannot re-issue: vendor has already submitted' },
+      { status: 409 }
+    );
+  }
+
   const { data, error } = await supabase.rpc('reissue_vendor_invite', {
-    p_vendor_tender_id: body.vendor_tender_id,
+    p_vendor_id: vt.vendor_id,
+    p_tender_id: vt.tender_config_id,
   });
 
   if (error) {
     return NextResponse.json(
-      { success: false, error: error.message, code: 'EC-25' },
+      { success: false, error: error.message },
       { status: 500 }
     );
   }
 
-  // The RPC returns the new token string
   const newToken = typeof data === 'string' ? data : String(data);
 
   return NextResponse.json({

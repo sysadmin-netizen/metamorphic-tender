@@ -36,9 +36,13 @@ interface ReissueButtonProps {
 export function ReissueButton({ vendorTenderId }: ReissueButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const handleReissue = useCallback(async () => {
     setLoading(true);
+    setError(null);
+    setSuccess(false);
     try {
       const res = await fetch('/api/invites/reissue', {
         method: 'POST',
@@ -47,26 +51,35 @@ export function ReissueButton({ vendorTenderId }: ReissueButtonProps) {
       });
       const json: ApiResponse = await res.json();
       if (!json.success) {
-        alert(json.error ?? 'Failed to re-issue invite');
+        setError(json.error ?? 'Failed to re-issue invite');
         setLoading(false);
         return;
       }
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
       router.refresh();
     } catch {
-      alert('Network error. Please try again.');
+      setError('Network error. Please try again.');
     }
     setLoading(false);
   }, [vendorTenderId, router]);
 
   return (
-    <button
-      type="button"
-      onClick={handleReissue}
-      disabled={loading}
-      className="rounded-md border border-stone-600 bg-stone-800 px-2.5 py-1 text-xs font-medium text-stone-300 hover:bg-stone-700 hover:text-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {loading ? 'Re-issuing...' : 'Re-issue'}
-    </button>
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={handleReissue}
+        disabled={loading || success}
+        className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+          success
+            ? 'border-green-600 bg-green-600/10 text-green-400'
+            : 'border-stone-600 bg-stone-800 text-stone-300 hover:bg-stone-700 hover:text-amber-400'
+        }`}
+      >
+        {loading ? 'Re-issuing...' : success ? 'Done!' : 'Re-issue'}
+      </button>
+      {error && <span className="text-xs text-red-400">{error}</span>}
+    </div>
   );
 }
 
