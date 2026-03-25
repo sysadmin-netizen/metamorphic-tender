@@ -4,7 +4,8 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { SchemaEditor } from '@/components/admin/schema-editor';
 import { BoqEditor } from '@/components/admin/boq-editor';
-import type { BoqLineItem } from '@/types';
+import { CommercialTermsEditor } from '@/components/admin/commercial-terms-editor';
+import type { BoqLineItem, FormSchemaJson } from '@/types';
 
 /* ---------------------------------------------------------------
    Types
@@ -13,9 +14,9 @@ import type { BoqLineItem } from '@/types';
 interface TenderDetailEditorProps {
   tenderId: string;
   updatedAt: string;
-  initialFormSchema: string;
+  initialFormSchema: FormSchemaJson;
   initialBoqTemplate: BoqLineItem[];
-  initialCommercialTerms: string;
+  initialCommercialTerms: Record<string, string>;
 }
 
 interface PatchResponse {
@@ -40,23 +41,6 @@ export function TenderDetailEditor({
   const [currentUpdatedAt, setCurrentUpdatedAt] = useState(updatedAt);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  // Commercial terms state
-  const [termsValue, setTermsValue] = useState(initialCommercialTerms);
-  const [termsError, setTermsError] = useState<string | null>(null);
-  const [termsDirty, setTermsDirty] = useState(false);
-
-  const handleTermsChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const next = e.target.value;
-    setTermsValue(next);
-    setTermsDirty(true);
-    try {
-      JSON.parse(next);
-      setTermsError(null);
-    } catch (err) {
-      setTermsError(err instanceof Error ? err.message : 'Invalid JSON');
-    }
-  }, []);
 
   /**
    * PATCH the tender with optimistic concurrency (EC-23).
@@ -100,13 +84,8 @@ export function TenderDetailEditor({
   );
 
   const handleSaveSchema = useCallback(
-    (schema: string) => {
-      try {
-        const parsed: unknown = JSON.parse(schema);
-        void patchTender({ form_schema: parsed });
-      } catch {
-        setMessage({ type: 'error', text: 'Invalid JSON in schema' });
-      }
+    (schema: FormSchemaJson) => {
+      void patchTender({ form_schema: schema });
     },
     [patchTender],
   );
@@ -118,16 +97,12 @@ export function TenderDetailEditor({
     [patchTender],
   );
 
-  const handleSaveTerms = useCallback(() => {
-    if (termsError) return;
-    try {
-      const parsed: unknown = JSON.parse(termsValue);
-      setTermsDirty(false);
-      void patchTender({ commercial_terms: parsed });
-    } catch {
-      setTermsError('Invalid JSON');
-    }
-  }, [termsValue, termsError, patchTender]);
+  const handleSaveTerms = useCallback(
+    (terms: Record<string, string>) => {
+      void patchTender({ commercial_terms: terms });
+    },
+    [patchTender],
+  );
 
   return (
     <div className="space-y-8">
@@ -151,7 +126,7 @@ export function TenderDetailEditor({
         </div>
       )}
 
-      {/* Form Schema Editor */}
+      {/* Form Schema Editor — visual builder */}
       <section className="rounded-lg border border-stone-700 bg-stone-800/50 p-6">
         <SchemaEditor
           initialSchema={initialFormSchema}
@@ -159,7 +134,7 @@ export function TenderDetailEditor({
         />
       </section>
 
-      {/* BOQ Template Editor */}
+      {/* BOQ Template Editor — visual table */}
       <section className="rounded-lg border border-stone-700 bg-stone-800/50 p-6">
         <BoqEditor
           initialTemplate={initialBoqTemplate}
@@ -167,39 +142,12 @@ export function TenderDetailEditor({
         />
       </section>
 
-      {/* Commercial Terms */}
-      <section className="space-y-3 rounded-lg border border-stone-700 bg-stone-800/50 p-6">
-        <label className="block text-sm font-medium text-stone-300">
-          Commercial Terms (JSON)
-        </label>
-        <textarea
-          value={termsValue}
-          onChange={handleTermsChange}
-          rows={10}
-          spellCheck={false}
-          className={`
-            w-full rounded-md border bg-stone-900 px-4 py-3 font-mono text-sm text-stone-200
-            placeholder:text-stone-600 focus:outline-none focus:ring-1 resize-y
-            ${termsError
-              ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-              : 'border-stone-700 focus:border-amber-500 focus:ring-amber-500'}
-          `}
+      {/* Commercial Terms — visual key-value editor */}
+      <section className="rounded-lg border border-stone-700 bg-stone-800/50 p-6">
+        <CommercialTermsEditor
+          initialTerms={initialCommercialTerms}
+          onSave={handleSaveTerms}
         />
-        {termsError && (
-          <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
-            {termsError}
-          </p>
-        )}
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={handleSaveTerms}
-            disabled={!termsDirty || !!termsError || saving}
-            className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-stone-900 hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            Save Commercial Terms
-          </button>
-        </div>
       </section>
     </div>
   );

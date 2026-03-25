@@ -44,9 +44,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-500 text-stone-900 font-bold text-lg tracking-tight">
-            MD
-          </div>
+          <img src="/logo.svg" alt="Metamorphic logo" className="h-12 w-12" />
           <h1 className="mt-4 text-lg font-semibold text-stone-200">
             Tender Portal Administration
           </h1>

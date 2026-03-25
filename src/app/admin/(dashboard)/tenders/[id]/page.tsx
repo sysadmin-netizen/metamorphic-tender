@@ -107,9 +107,9 @@ export default async function TenderDetailPage({
       <TenderDetailEditor
         tenderId={tender.id}
         updatedAt={tender.updated_at}
-        initialFormSchema={JSON.stringify(tender.form_schema, null, 2)}
+        initialFormSchema={tender.form_schema}
         initialBoqTemplate={tender.boq_template as { code: string; description: string; unit: string; quantity: number }[]}
-        initialCommercialTerms={JSON.stringify(tender.commercial_terms, null, 2)}
+        initialCommercialTerms={tender.commercial_terms as Record<string, string>}
       />
     </div>
   );

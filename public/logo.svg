@@ -1,4 +1,33 @@
-<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="40" height="40" rx="8" fill="#b45309"/>
-  <text x="20" y="27" text-anchor="middle" fill="white" font-family="system-ui" font-weight="700" font-size="18">MD</text>
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Stylized calligraphic "M" mark for Metamorphic
+    Color: #93c5fd (sky-400 / light blue)
+    Transparent background
+  -->
+  <path
+    d="M 18 92
+       Q 16 50, 22 30
+       C 24 22, 28 18, 32 20
+       C 36 22, 42 38, 52 60
+       Q 56 68, 60 72
+       Q 64 68, 68 60
+       C 78 38, 84 22, 88 20
+       C 92 18, 96 22, 98 30
+       Q 104 50, 102 92"
+    stroke="#93c5fd"
+    stroke-width="10"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <!-- Subtle swoosh accent beneath the M -->
+  <path
+    d="M 30 100
+       Q 60 110, 90 100"
+    stroke="#93c5fd"
+    stroke-width="4"
+    stroke-linecap="round"
+    fill="none"
+    opacity="0.5"
+  />
 </svg>

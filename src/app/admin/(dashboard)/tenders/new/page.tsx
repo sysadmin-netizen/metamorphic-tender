@@ -4,7 +4,8 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { SchemaEditor } from '@/components/admin/schema-editor';
 import { BoqEditor } from '@/components/admin/boq-editor';
-import type { BoqLineItem, FormSchemaJson, CommercialTermsJson } from '@/types';
+import { CommercialTermsEditor } from '@/components/admin/commercial-terms-editor';
+import type { BoqLineItem, FormSchemaJson } from '@/types';
 
 /* ---------------------------------------------------------------
    Default empty form schema
@@ -28,15 +29,16 @@ const DEFAULT_SCHEMA: FormSchemaJson = {
   ],
 };
 
-const DEFAULT_COMMERCIAL_TERMS: CommercialTermsJson = {
-  payment_terms: 'Net 60 days from invoice date',
-  retention: '10% until practical completion',
-  performance_bond: '10% of contract value',
-  advance_payment_guarantee: '100% of advance amount',
-  defects_liability_period: '12 months from practical completion',
-  price_validity: '90 days from submission deadline',
-  currency: 'AED',
-  tax: 'Exclusive of VAT (5%)',
+const DEFAULT_COMMERCIAL_TERMS: Record<string, string> = {
+  Retention: '10% until practical completion',
+  'Liquidated Damages': 'AED 500 per day',
+  'Payment Terms': 'Net-7 from Metamorphic receipt of client payment',
+  'Cash Advance': 'Not applicable',
+  'Insurance Minimum': 'AED 2,000,000',
+  'Defect Liability': '12 months from practical completion',
+  Invoicing: 'MetaForge portal only',
+  'Quality Min Score': '0.85',
+  'Site Access': 'MetaForge task unlock only',
 };
 
 /* ---------------------------------------------------------------
@@ -58,33 +60,17 @@ export default function NewTenderPage() {
   const [projectName, setProjectName] = useState('');
   const [closingDeadline, setClosingDeadline] = useState('');
 
-  // JSON editors
-  const [formSchema, setFormSchema] = useState(JSON.stringify(DEFAULT_SCHEMA, null, 2));
-  const [commercialTerms, setCommercialTerms] = useState(
-    JSON.stringify(DEFAULT_COMMERCIAL_TERMS, null, 2),
+  // Visual editor state
+  const [formSchema, setFormSchema] = useState<FormSchemaJson>(DEFAULT_SCHEMA);
+  const [commercialTerms, setCommercialTerms] = useState<Record<string, string>>(
+    DEFAULT_COMMERCIAL_TERMS,
   );
-
-  // BOQ editor
   const [boqTemplate, setBoqTemplate] = useState<BoqLineItem[]>([
-    { code: '', description: '', unit: '', quantity: 0 },
+    { code: 'A-001', description: '', unit: '', quantity: 0 },
   ]);
-
-  // Commercial terms validation
-  const [termsError, setTermsError] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleTermsChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const next = e.target.value;
-    setCommercialTerms(next);
-    try {
-      JSON.parse(next);
-      setTermsError(null);
-    } catch (err) {
-      setTermsError(err instanceof Error ? err.message : 'Invalid JSON');
-    }
-  }, []);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -93,17 +79,14 @@ export default function NewTenderPage() {
       setSaving(true);
 
       try {
-        const parsedSchema: unknown = JSON.parse(formSchema);
-        const parsedTerms: unknown = JSON.parse(commercialTerms);
-
         const body = {
           package_code: packageCode.trim(),
           package_name: packageName.trim(),
           project_name: projectName.trim(),
           closing_deadline: new Date(closingDeadline).toISOString(),
-          form_schema: parsedSchema,
+          form_schema: formSchema,
           boq_template: boqTemplate.filter((row) => row.code.trim().length > 0),
-          commercial_terms: parsedTerms,
+          commercial_terms: commercialTerms,
         };
 
         const res = await fetch('/api/tenders', {
@@ -208,7 +191,7 @@ export default function NewTenderPage() {
           </div>
         </section>
 
-        {/* Form schema */}
+        {/* Form schema — visual builder */}
         <section className="rounded-lg border border-stone-700 bg-stone-800/50 p-6">
           <SchemaEditor
             initialSchema={formSchema}
@@ -216,7 +199,7 @@ export default function NewTenderPage() {
           />
         </section>
 
-        {/* BOQ template */}
+        {/* BOQ template — visual table */}
         <section className="rounded-lg border border-stone-700 bg-stone-800/50 p-6">
           <BoqEditor
             initialTemplate={boqTemplate}
@@ -224,36 +207,19 @@ export default function NewTenderPage() {
           />
         </section>
 
-        {/* Commercial terms */}
-        <section className="space-y-3 rounded-lg border border-stone-700 bg-stone-800/50 p-6">
-          <label className="block text-sm font-medium text-stone-300">
-            Commercial Terms (JSON)
-          </label>
-          <textarea
-            value={commercialTerms}
-            onChange={handleTermsChange}
-            rows={10}
-            spellCheck={false}
-            className={`
-              w-full rounded-md border bg-stone-900 px-4 py-3 font-mono text-sm text-stone-200
-              placeholder:text-stone-600 focus:outline-none focus:ring-1 resize-y
-              ${termsError
-                ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                : 'border-stone-700 focus:border-amber-500 focus:ring-amber-500'}
-            `}
+        {/* Commercial terms — visual key-value editor */}
+        <section className="rounded-lg border border-stone-700 bg-stone-800/50 p-6">
+          <CommercialTermsEditor
+            initialTerms={commercialTerms}
+            onSave={(terms) => setCommercialTerms(terms)}
           />
-          {termsError && (
-            <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
-              {termsError}
-            </p>
-          )}
         </section>
 
         {/* Submit */}
         <div className="flex justify-end">
           <button
             type="submit"
-            disabled={saving || !!termsError}
+            disabled={saving}
             className="rounded-md bg-amber-600 px-6 py-2.5 text-sm font-semibold text-stone-900 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? 'Creating...' : 'Create Tender'}

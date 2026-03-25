@@ -406,7 +406,7 @@ export default async function VendorTenderPage({
 
       {/* Dark full-width header */}
       <header className="w-full bg-[var(--bg-primary)] px-4 py-4 sm:px-6">
-        <div className="mx-auto flex max-w-3xl items-center justify-between">
+        <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-base font-semibold text-[var(--text-inverse)] sm:text-lg">
               {tenderConfig.package_name}
@@ -415,8 +415,10 @@ export default async function VendorTenderPage({
               {tenderConfig.project_name} &middot; {tenderConfig.package_code}
             </p>
           </div>
-          <div className="ml-4 flex flex-col items-end">
-            <span className="text-xs text-stone-400">Time remaining</span>
+          <div className="flex flex-col items-start sm:ml-4 sm:items-end sm:shrink-0">
+            <span className="mb-1 text-xs font-medium uppercase tracking-wider text-stone-400">
+              Time remaining
+            </span>
             <Countdown deadline={effectiveDeadline} />
           </div>
         </div>

@@ -71,11 +71,11 @@ export function Button({
       disabled={isDisabled}
       className={[
         'inline-flex items-center justify-center rounded-[6px] font-medium',
-        'transition-colors duration-150',
+        'transition-all duration-150 ease-in-out',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         variantClasses[variant],
         sizeClasses[size],
-        isDisabled ? 'opacity-50 cursor-not-allowed' : '',
+        isDisabled ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.98]',
         className,
       ]
         .filter(Boolean)

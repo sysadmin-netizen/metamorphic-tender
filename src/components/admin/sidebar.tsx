@@ -62,9 +62,11 @@ export function AdminSidebar() {
           <Link
             key={item.href}
             href={item.href}
+            prefetch={true}
             onClick={closeDrawer}
             className={`
-              flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors
+              flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium
+              transition-all duration-150 ease-in-out
               ${active
                 ? 'border-l-[3px] border-amber-500 bg-stone-800 text-amber-400 pl-[9px]'
                 : 'border-l-[3px] border-transparent text-stone-400 hover:text-stone-200 hover:bg-stone-800 pl-[9px]'}
@@ -80,9 +82,7 @@ export function AdminSidebar() {
 
   const logo = (
     <div className="flex items-center gap-3 px-6 py-5 border-b border-stone-800">
-      <div className="flex h-9 w-9 items-center justify-center rounded-md bg-amber-500 text-stone-900 font-bold text-sm tracking-tight">
-        MD
-      </div>
+      <img src="/logo.svg" alt="Metamorphic logo" className="h-10 w-10" />
       <div className="flex flex-col">
         <span className="text-sm font-semibold text-stone-200 leading-tight">Metamorphic</span>
         <span className="text-xs text-stone-500 leading-tight">Tender Portal</span>
