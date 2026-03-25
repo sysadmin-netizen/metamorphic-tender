@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { createServiceClient } from '@/lib/supabase/server';
 import { formatGST } from '@/lib/date';
 import { STATUS_COLORS } from '@/lib/constants';
-import { InviteActions } from './actions';
+import { InviteActions, ReissueButton } from './actions';
 import type { VendorTenderStatus } from '@/lib/types/database';
 
 export default async function TenderInvitePage({
@@ -131,7 +131,7 @@ export default async function TenderInvitePage({
                   </td>
                   <td className="px-4 py-2.5 whitespace-nowrap">
                     {canReissue && (
-                      <InviteReissueButton inviteId={inv.id} tenderId={id} />
+                      <ReissueButton vendorTenderId={inv.id} />
                     )}
                   </td>
                 </tr>
@@ -144,21 +144,3 @@ export default async function TenderInvitePage({
   );
 }
 
-/* ---------------------------------------------------------------
-   Inline server-rendered placeholder for the re-issue button.
-   The actual interactivity is in the client component.
-   --------------------------------------------------------------- */
-
-function InviteReissueButton({ inviteId, tenderId }: { inviteId: string; tenderId: string }) {
-  return (
-    <form action={`/api/invites/${inviteId}/reissue`} method="POST">
-      <input type="hidden" name="tender_id" value={tenderId} />
-      <button
-        type="submit"
-        className="rounded-md border border-stone-600 bg-stone-800 px-2.5 py-1 text-xs font-medium text-stone-300 hover:bg-stone-700 hover:text-amber-400 transition-colors"
-      >
-        Re-issue
-      </button>
-    </form>
-  );
-}

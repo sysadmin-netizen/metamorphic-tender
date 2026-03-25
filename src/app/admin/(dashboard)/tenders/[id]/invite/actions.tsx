@@ -25,6 +25,52 @@ interface QuickInviteResponse {
 }
 
 /* ---------------------------------------------------------------
+   Component: Re-issue button (EC-25)
+   POST /api/invites/reissue with JSON body { vendor_tender_id }
+   --------------------------------------------------------------- */
+
+interface ReissueButtonProps {
+  vendorTenderId: string;
+}
+
+export function ReissueButton({ vendorTenderId }: ReissueButtonProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  const handleReissue = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/invites/reissue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendor_tender_id: vendorTenderId }),
+      });
+      const json: ApiResponse = await res.json();
+      if (!json.success) {
+        alert(json.error ?? 'Failed to re-issue invite');
+        setLoading(false);
+        return;
+      }
+      router.refresh();
+    } catch {
+      alert('Network error. Please try again.');
+    }
+    setLoading(false);
+  }, [vendorTenderId, router]);
+
+  return (
+    <button
+      type="button"
+      onClick={handleReissue}
+      disabled={loading}
+      className="rounded-md border border-stone-600 bg-stone-800 px-2.5 py-1 text-xs font-medium text-stone-300 hover:bg-stone-700 hover:text-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {loading ? 'Re-issuing...' : 'Re-issue'}
+    </button>
+  );
+}
+
+/* ---------------------------------------------------------------
    Component: Quick Link Generation + Generate Invites + Download CSV
    --------------------------------------------------------------- */
 
