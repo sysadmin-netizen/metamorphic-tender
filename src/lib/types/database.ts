@@ -351,8 +351,8 @@ export interface Database {
     Functions: {
       generate_vendor_invites: {
         Args: {
-          p_tender_config_id: string;
-          p_vendor_ids: string[];
+          p_tender_id: string;
+          p_expiry_hours?: number;
         };
         Returns: number;
       };

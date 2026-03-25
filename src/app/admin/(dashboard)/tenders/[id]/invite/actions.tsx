@@ -204,32 +204,11 @@ export function InviteActions({ tenderId }: InviteActionsProps) {
     setError(null);
 
     try {
-      // Fetch all active vendors to get their IDs (paginate if needed)
-      const vendorIds: string[] = [];
-      let page = 1;
-      let hasMore = true;
-      while (hasMore) {
-        const vendorRes = await fetch(`/api/vendors?per_page=100&page=${page}`);
-        const vendorJson = await vendorRes.json();
-        const batch: string[] = (vendorJson.data ?? []).map((v: { id: string }) => v.id);
-        vendorIds.push(...batch);
-        hasMore = page < (vendorJson.pagination?.total_pages ?? 0);
-        page++;
-      }
-
-      if (vendorIds.length === 0) {
-        setError('No active vendors found. Add vendors first before generating bulk invites.');
-        setGenerating(false);
-        return;
-      }
-
+      // The DB function generates invites for ALL active vendors automatically
       const res = await fetch('/api/invites', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tender_config_id: tenderId,
-          vendor_ids: vendorIds,
-        }),
+        body: JSON.stringify({ tender_config_id: tenderId }),
       });
 
       const json: ApiResponse = await res.json();

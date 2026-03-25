@@ -10,17 +10,12 @@ async function verifyAdmin(): Promise<boolean> {
 
 interface GenerateInvitesBody {
   tender_config_id: string;
-  vendor_ids: string[];
 }
 
 function isGenerateInvitesBody(body: unknown): body is GenerateInvitesBody {
   if (typeof body !== 'object' || body === null) return false;
   const record = body as Record<string, unknown>;
-  return (
-    typeof record.tender_config_id === 'string' &&
-    Array.isArray(record.vendor_ids) &&
-    record.vendor_ids.every((id: unknown) => typeof id === 'string')
-  );
+  return typeof record.tender_config_id === 'string';
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -43,16 +38,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (!isGenerateInvitesBody(body)) {
     return NextResponse.json(
-      { success: false, error: 'Missing required fields: tender_config_id, vendor_ids' },
+      { success: false, error: 'Missing required field: tender_config_id' },
       { status: 400 }
     );
   }
 
   const supabase = createServiceClient();
 
+  // The DB function generates invites for ALL active vendors automatically
   const { data, error } = await supabase.rpc('generate_vendor_invites', {
-    p_tender_config_id: body.tender_config_id,
-    p_vendor_ids: body.vendor_ids,
+    p_tender_id: body.tender_config_id,
   });
 
   if (error) {
