@@ -50,7 +50,7 @@ export default async function AdminDashboardLayout({
   return (
     <div className="min-h-screen bg-stone-950 text-stone-200">
       <AdminSidebar />
-      <main className="ml-0 lg:ml-[260px] min-h-screen p-6">
+      <main className="ml-0 lg:ml-[260px] min-h-screen p-4 pt-[72px] sm:p-6 sm:pt-[72px] lg:pt-6">
         <Suspense fallback={<PageFallback />}>
           {children}
         </Suspense>

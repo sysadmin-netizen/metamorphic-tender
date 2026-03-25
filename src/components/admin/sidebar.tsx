@@ -98,21 +98,25 @@ export function AdminSidebar() {
         {navContent}
       </aside>
 
-      {/* ---- Mobile hamburger button ---- */}
-      <button
-        type="button"
-        onClick={toggleDrawer}
-        className="fixed top-4 left-4 z-50 flex lg:hidden h-10 w-10 items-center justify-center rounded-md bg-stone-900 text-stone-300 hover:text-amber-400 transition-colors"
-        aria-label="Toggle navigation"
-      >
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          {drawerOpen ? (
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          ) : (
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-          )}
-        </svg>
-      </button>
+      {/* ---- Mobile top bar ---- */}
+      <div className="fixed top-0 left-0 right-0 z-50 flex lg:hidden items-center gap-3 h-14 px-4 bg-stone-900 border-b border-stone-800">
+        <button
+          type="button"
+          onClick={toggleDrawer}
+          className="flex h-10 w-10 items-center justify-center rounded-md text-stone-300 hover:text-amber-400 hover:bg-stone-800 transition-all duration-150"
+          aria-label="Toggle navigation"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            {drawerOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            )}
+          </svg>
+        </button>
+        <img src="/logo-icon.png" alt="M" className="h-8 w-8 object-contain" />
+        <span className="text-sm font-semibold text-stone-200">Metamorphic</span>
+      </div>
 
       {/* ---- Mobile drawer overlay ---- */}
       {drawerOpen && (
