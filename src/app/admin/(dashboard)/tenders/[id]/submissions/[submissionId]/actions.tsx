@@ -5,12 +5,30 @@ import { useCallback } from 'react';
 
 interface SubmissionDetailActionsProps {
   tenderId: string;
+  pdfFilename?: string;
 }
 
-export function SubmissionDetailActions({ tenderId }: SubmissionDetailActionsProps) {
+export function SubmissionDetailActions({ tenderId, pdfFilename }: SubmissionDetailActionsProps) {
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
+
+  const handleDownloadPdf = useCallback(() => {
+    // Set document title to a meaningful filename so the browser's
+    // "Save as PDF" destination uses it as the default file name.
+    const originalTitle = document.title;
+    const filename = pdfFilename ?? 'Tender-Submission';
+    document.title = filename;
+
+    // Listen for the afterprint event to restore the title.
+    const restore = () => {
+      document.title = originalTitle;
+      window.removeEventListener('afterprint', restore);
+    };
+    window.addEventListener('afterprint', restore);
+
+    window.print();
+  }, [pdfFilename]);
 
   return (
     <div className="submission-actions-bar sticky top-0 z-50 -mx-4 -mt-4 mb-6 flex items-center justify-between gap-3 border-b border-stone-700 bg-stone-900/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:-mt-6 sm:px-6 lg:-mt-6 print:hidden">
@@ -38,8 +56,8 @@ export function SubmissionDetailActions({ tenderId }: SubmissionDetailActionsPro
 
         <button
           type="button"
-          onClick={handlePrint}
-          title="Use your browser's &quot;Save as PDF&quot; option in the print dialog"
+          onClick={handleDownloadPdf}
+          title="Save as PDF — select &quot;Save as PDF&quot; as the destination in the print dialog"
           className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-stone-900 hover:bg-amber-500 transition-colors"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

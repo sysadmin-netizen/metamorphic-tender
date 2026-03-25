@@ -76,7 +76,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const csvHeader = 'company_name,contact_name,email,whatsapp,tender_link';
   const csvRows = rows.map((row) => {
     const vendor = row.vendors;
-    const tenderLink = `${baseUrl}/tender/${row.token}`;
+    const tenderLink = `${baseUrl}/t/${row.token}`;
     return [
       escapeCsvField(vendor.company_name),
       escapeCsvField(vendor.contact_name),
