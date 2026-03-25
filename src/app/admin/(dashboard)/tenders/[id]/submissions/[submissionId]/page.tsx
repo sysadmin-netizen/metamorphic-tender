@@ -100,10 +100,7 @@ export default async function SubmissionDetailPage({
 
   return (
     <>
-      <SubmissionDetailActions
-        tenderId={tenderId}
-        pdfFilename={`Submission-${tender.package_code}-${vendor.company_name.replace(/[^a-zA-Z0-9]+/g, '-')}-${submission.id.slice(0, 8).toUpperCase()}`}
-      />
+      <SubmissionDetailActions tenderId={tenderId} />
 
       {/* ---- Print-ready document ---- */}
       <div className="submission-document mx-auto max-w-[820px] bg-white text-stone-900 shadow-xl print:shadow-none print:max-w-none print:mx-0">
