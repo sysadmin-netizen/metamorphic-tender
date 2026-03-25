@@ -368,34 +368,67 @@ export default async function SubmissionDetailPage({
       <style
         dangerouslySetInnerHTML={{
           __html: `
+            @page {
+              size: A4;
+              margin: 10mm;
+            }
             @media print {
-              /* Hide admin chrome */
-              aside, nav, .admin-sidebar, .submission-actions-bar {
+              /* Remove browser header/footer (URL, date, page numbers) */
+              @page { margin: 10mm; }
+
+              /* Hide ALL admin chrome — sidebar, top bar, action buttons */
+              aside, nav, header,
+              .admin-sidebar,
+              .submission-actions-bar,
+              [class*="fixed top-0"],
+              [class*="lg:flex lg:flex-col lg:fixed"] {
                 display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                overflow: hidden !important;
               }
-              /* Reset main content area */
-              main {
-                margin-left: 0 !important;
-                padding: 0 !important;
-              }
-              body {
+
+              /* Reset layout — remove sidebar margin, padding */
+              html, body {
                 background: white !important;
                 color: black !important;
+                margin: 0 !important;
+                padding: 0 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
               }
+              main {
+                margin-left: 0 !important;
+                padding: 0 !important;
+                min-height: auto !important;
+              }
+              .min-h-screen { min-height: auto !important; }
+
+              /* Document fits on page */
               .submission-document {
                 max-width: 100% !important;
+                width: 100% !important;
                 margin: 0 !important;
+                padding: 20px !important;
                 box-shadow: none !important;
                 border-radius: 0 !important;
+                border: none !important;
+                font-size: 11px !important;
               }
-              /* Ensure alternating row backgrounds print */
+              .submission-document h2 { font-size: 14px !important; }
+              .submission-document h3 { font-size: 12px !important; }
+              .submission-document table { font-size: 10px !important; }
+              .submission-document p, .submission-document li { font-size: 10px !important; }
+
+              /* Ensure backgrounds print */
               tr { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-              /* Avoid page breaks inside tables */
               table { page-break-inside: auto; }
               tr { page-break-inside: avoid; }
               thead { display: table-header-group; }
+
+              /* Compact spacing for single page */
+              .submission-document > div { margin-bottom: 8px !important; padding: 8px !important; }
+              .submission-document .grid { gap: 4px !important; }
             }
           `,
         }}
