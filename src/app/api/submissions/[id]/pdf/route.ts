@@ -308,7 +308,7 @@ export async function GET(
   const col2X = MARGIN_LEFT + CONTENT_WIDTH / 2;
   const pkgLabelW = 105;
 
-  drawLabelValue(ctx, 'Package:', `${tender.package_code} \u2014 ${tender.package_name}`, MARGIN_LEFT, pkgLabelW);
+  drawLabelValue(ctx, 'Package:', `${tender.package_code}  - ${tender.package_name}`, MARGIN_LEFT, pkgLabelW);
   drawLabelValue(ctx, 'Project:', tender.project_name, col2X, pkgLabelW);
   ctx.y -= 14;
 
@@ -388,8 +388,8 @@ export async function GET(
     }
 
     ctx.page.drawText(item.code, { x: colCode, y: ctx.y, size: rowSize, font, color: MEDIUM_GREY });
-    drawTruncated(ctx.page, template?.description ?? '\u2014', colDesc, ctx.y, 195, rowSize, font, DARK_GREY);
-    ctx.page.drawText(template?.unit ?? '\u2014', { x: colUnit, y: ctx.y, size: rowSize, font, color: MEDIUM_GREY });
+    drawTruncated(ctx.page, template?.description ?? ' -', colDesc, ctx.y, 195, rowSize, font, DARK_GREY);
+    ctx.page.drawText(template?.unit ?? ' -', { x: colUnit, y: ctx.y, size: rowSize, font, color: MEDIUM_GREY });
 
     const qty = item.quantity ?? template?.quantity ?? 0;
     drawRight(ctx.page, String(qty), colQty + 40, ctx.y, rowSize, font, MEDIUM_GREY);
@@ -432,8 +432,8 @@ export async function GET(
   ctx = ensureSpace(ctx, 50);
   ctx = drawSectionTitle(ctx, 'COMPLIANCE');
 
-  const yesStr = '\u2713 Confirmed';
-  const noStr = '\u2717 Not Confirmed';
+  const yesStr = 'YES - Confirmed';
+  const noStr = 'NO - Not Confirmed';
 
   drawLabelValue(ctx, 'MetaForge Portal:', submission.metaforge_confirmed ? yesStr : noStr, MARGIN_LEFT, pkgLabelW);
   drawLabelValue(ctx, 'Insurance (AED 2M):', submission.insurance_confirmed ? yesStr : noStr, col2X, pkgLabelW);
@@ -452,7 +452,7 @@ export async function GET(
       ctx = ensureSpace(ctx, 16);
       const num = `${idx + 1}. `;
       const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-      const termText = `${num}${label} \u2014 ${String(value)}`;
+      const termText = `${num}${label}  - ${String(value)}`;
 
       drawTruncated(ctx.page, termText, MARGIN_LEFT + 4, ctx.y, CONTENT_WIDTH - 8, 8, font, DARK_GREY);
       ctx.y -= 14;
@@ -470,7 +470,7 @@ export async function GET(
 
   const footerText1 = 'This document was generated from the Metamorphic Tender Portal.';
   const footerText2 = 'Submission is final and binding.';
-  const footerText3 = `${COMPANY_NAME} \u00B7 Dubai, UAE`;
+  const footerText3 = `${COMPANY_NAME} | Dubai, UAE`;
 
   const ft1w = font.widthOfTextAtSize(footerText1, 7);
   ctx.page.drawText(footerText1, {
