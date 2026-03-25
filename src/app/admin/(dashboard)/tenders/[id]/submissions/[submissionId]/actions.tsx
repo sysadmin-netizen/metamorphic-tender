@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 interface SubmissionDetailActionsProps {
   tenderId: string;
@@ -9,25 +9,35 @@ interface SubmissionDetailActionsProps {
 }
 
 export function SubmissionDetailActions({ tenderId, pdfFilename }: SubmissionDetailActionsProps) {
+  const [downloading, setDownloading] = useState(false);
+
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
 
-  const handleDownloadPdf = useCallback(() => {
-    // Set document title to a meaningful filename so the browser's
-    // "Save as PDF" destination uses it as the default file name.
-    const originalTitle = document.title;
-    const filename = pdfFilename ?? 'Tender-Submission';
-    document.title = filename;
+  const handleDownloadPdf = useCallback(async () => {
+    setDownloading(true);
+    try {
+      // Dynamic import to keep bundle small
+      const html2pdf = (await import('html2pdf.js')).default;
+      const element = document.querySelector('.submission-document');
+      if (!element) return;
 
-    // Listen for the afterprint event to restore the title.
-    const restore = () => {
-      document.title = originalTitle;
-      window.removeEventListener('afterprint', restore);
-    };
-    window.addEventListener('afterprint', restore);
+      const filename = pdfFilename ?? 'Tender-Submission';
 
-    window.print();
+      await html2pdf().set({
+        margin: 8,
+        filename: `${filename}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      }).from(element).save();
+    } catch {
+      // Fallback to print if html2pdf fails
+      window.print();
+    } finally {
+      setDownloading(false);
+    }
   }, [pdfFilename]);
 
   return (
@@ -39,7 +49,7 @@ export function SubmissionDetailActions({ tenderId, pdfFilename }: SubmissionDet
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
         </svg>
-        Back to Submissions
+        Back
       </Link>
 
       <div className="flex items-center gap-2">
@@ -57,13 +67,22 @@ export function SubmissionDetailActions({ tenderId, pdfFilename }: SubmissionDet
         <button
           type="button"
           onClick={handleDownloadPdf}
-          title="Save as PDF — select &quot;Save as PDF&quot; as the destination in the print dialog"
-          className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-stone-900 hover:bg-amber-500 transition-colors"
+          disabled={downloading}
+          className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-stone-900 hover:bg-amber-500 transition-colors disabled:opacity-50"
         >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
-          Download PDF
+          {downloading ? (
+            <>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-stone-800 border-t-transparent" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              Download PDF
+            </>
+          )}
         </button>
       </div>
     </div>
