@@ -36,30 +36,40 @@ export function SubmissionDetailActions({ tenderId, pdfFilename }: SubmissionDet
         backgroundColor: '#ffffff',
       });
 
-      const imgData = canvas.toDataURL('image/png');
       const imgW = canvas.width;
       const imgH = canvas.height;
 
-      // A4 dimensions in mm
-      const a4W = 210;
-      const a4H = 297;
-      const margin = 8; // mm margin on each page
-      const usableH = a4H - margin * 2;
+      // A4 at 2x scale in pixels
+      const a4WPx = 210 * 2 * (96 / 25.4); // ~1587px
+      const ratio = a4WPx / imgW;
+      const pageHPx = Math.floor((297 * 2 * (96 / 25.4))); // ~2245px per A4 page at scale
+      const scaledPageH = Math.floor(pageHPx / ratio); // how many source px fit on one page
 
-      // Full image height in mm when scaled to fit A4 width (minus margins)
-      const contentW = a4W - margin * 2;
-      const scaledH = (imgH * contentW) / imgW;
-
+      const totalPages = Math.ceil(imgH / scaledPageH);
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-      // Place the full image on each page, offset upward so the right portion shows.
-      // jsPDF clips to page bounds automatically — no text cutting.
-      const totalPages = Math.ceil(scaledH / usableH);
 
       for (let page = 0; page < totalPages; page++) {
         if (page > 0) doc.addPage();
-        const yOffset = margin - page * usableH;
-        doc.addImage(imgData, 'PNG', margin, yOffset, contentW, scaledH);
+
+        // Slice this page's portion from the source canvas
+        const srcY = page * scaledPageH;
+        const srcH = Math.min(scaledPageH, imgH - srcY);
+
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = imgW;
+        pageCanvas.height = scaledPageH; // always full page height
+        const ctx = pageCanvas.getContext('2d');
+        if (!ctx) continue;
+
+        // Fill white background first (handles last page with less content)
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+
+        // Draw the slice
+        ctx.drawImage(canvas, 0, srcY, imgW, srcH, 0, 0, imgW, srcH);
+
+        const pageImgData = pageCanvas.toDataURL('image/png');
+        doc.addImage(pageImgData, 'PNG', 0, 0, 210, 297);
       }
 
       doc.save(`${pdfFilename ?? 'Tender-Submission'}.pdf`);
