@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
 import { NAV_ITEMS } from '@/lib/constants';
 
@@ -47,6 +47,15 @@ export function AdminSidebar() {
   const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
   }, []);
+
+  const router = useRouter();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = useCallback(async () => {
+    setLoggingOut(true);
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/admin/login');
+  }, [router]);
 
   /** Determine if a nav item is the currently active route */
   function isActive(href: string): boolean {
@@ -95,7 +104,22 @@ export function AdminSidebar() {
       {/* ---- Desktop sidebar (>= 1024px) ---- */}
       <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-[260px] bg-stone-900 z-40">
         {logo}
-        {navContent}
+        <div className="flex flex-col flex-1 justify-between">
+          {navContent}
+          <div className="px-3 py-4 border-t border-stone-800">
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-stone-400 hover:text-red-400 hover:bg-stone-800 transition-all duration-150"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+              </svg>
+              {loggingOut ? 'Signing out...' : 'Sign Out'}
+            </button>
+          </div>
+        </div>
       </aside>
 
       {/* ---- Mobile top bar ---- */}
@@ -135,7 +159,22 @@ export function AdminSidebar() {
         `}
       >
         {logo}
-        {navContent}
+        <div className="flex flex-col flex-1 justify-between">
+          {navContent}
+          <div className="px-3 py-4 border-t border-stone-800">
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-stone-400 hover:text-red-400 hover:bg-stone-800 transition-all duration-150"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+              </svg>
+              {loggingOut ? 'Signing out...' : 'Sign Out'}
+            </button>
+          </div>
+        </div>
       </aside>
     </>
   );
