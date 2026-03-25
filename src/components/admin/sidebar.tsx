@@ -81,9 +81,12 @@ export function AdminSidebar() {
   );
 
   const logo = (
-    <div className="flex flex-col items-start px-6 py-5 border-b border-stone-800">
-      <img src="/logo-full.png" alt="Metamorphic" className="h-8 w-auto object-contain" />
-      <span className="text-[10px] text-stone-500 mt-1.5 tracking-widest uppercase">Tender Portal</span>
+    <div className="flex items-center gap-3 px-5 py-4 border-b border-stone-800">
+      <img src="/logo-icon.png" alt="M" className="h-12 w-12 object-contain shrink-0" />
+      <div className="flex flex-col">
+        <span className="text-sm font-semibold text-stone-200 leading-tight">Metamorphic</span>
+        <span className="text-xs text-stone-500 leading-tight">Tender Portal</span>
+      </div>
     </div>
   );
 
