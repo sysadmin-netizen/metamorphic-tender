@@ -16,6 +16,7 @@ interface TenderListResponse {
     closing_deadline: string;
     is_active: boolean;
     is_archived: boolean;
+    archived_at?: string | null;
   }>;
   error?: string;
 }
@@ -256,6 +257,18 @@ export default function TendersListPage() {
             Archived
           </button>
         </div>
+
+        {/* Auto-delete notice for archived view */}
+        {showArchived && !loading && tenders.length > 0 && (
+          <div className="flex items-center gap-3 rounded-lg border border-stone-700 bg-stone-800/60 px-4 py-3">
+            <svg className="h-5 w-5 shrink-0 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <p className="text-sm text-stone-400">
+              Archived tenders are automatically deleted after <span className="font-semibold text-stone-300">30 days</span>. To keep a tender, move it back to Active before then.
+            </p>
+          </div>
+        )}
 
         {/* Tender cards */}
         {loading ? (

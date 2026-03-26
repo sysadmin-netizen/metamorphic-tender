@@ -185,7 +185,7 @@ export async function DELETE(
     // Has submissions: archive instead of delete (EC-20)
     const { data, error } = await supabase
       .from('tender_configs')
-      .update({ is_archived: true, is_active: false })
+      .update({ is_archived: true, is_active: false, archived_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
@@ -222,7 +222,7 @@ export async function DELETE(
     // If real delete fails (FK or other), fall back to archive
     const { data: archived } = await supabase
       .from('tender_configs')
-      .update({ is_archived: true, is_active: false })
+      .update({ is_archived: true, is_active: false, archived_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();

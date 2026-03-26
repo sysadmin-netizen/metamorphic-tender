@@ -59,6 +59,7 @@ export interface TenderCardData {
   closing_deadline: string;
   is_active: boolean;
   is_archived: boolean;
+  archived_at?: string | null;
   submission_count: number;
   invite_count: number;
 }

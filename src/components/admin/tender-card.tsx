@@ -6,9 +6,18 @@ interface TenderCardProps {
   tender: TenderCardData;
 }
 
+function getDaysRemaining(archivedAt: string | null | undefined): number | null {
+  if (!archivedAt) return null;
+  const archived = new Date(archivedAt).getTime();
+  const deleteAt = archived + 30 * 24 * 60 * 60 * 1000; // 30 days
+  const remaining = Math.ceil((deleteAt - Date.now()) / (24 * 60 * 60 * 1000));
+  return remaining > 0 ? remaining : 0;
+}
+
 export function TenderCard({ tender }: TenderCardProps) {
   const deadlineDate = new Date(tender.closing_deadline);
   const isPast = deadlineDate.getTime() < Date.now();
+  const daysLeft = tender.is_archived ? getDaysRemaining(tender.archived_at) : null;
 
   return (
     <Link
@@ -43,6 +52,18 @@ export function TenderCard({ tender }: TenderCardProps) {
       <p className="text-sm text-stone-400 mb-4">
         {tender.project_name}
       </p>
+
+      {/* Auto-delete countdown for archived tenders */}
+      {tender.is_archived && daysLeft !== null && (
+        <div className={`flex items-center gap-1.5 mb-3 text-xs ${daysLeft <= 7 ? 'text-red-400' : 'text-stone-500'}`}>
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+          {daysLeft === 0
+            ? 'Will be permanently deleted soon'
+            : `Auto-deletes in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`}
+        </div>
+      )}
 
       {/* Footer metrics */}
       <div className="flex items-center gap-4 text-xs text-stone-500">
