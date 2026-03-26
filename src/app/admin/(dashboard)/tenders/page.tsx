@@ -177,31 +177,35 @@ export default function TendersListPage() {
         method: 'DELETE',
       });
 
-      if (res.status === 409) {
-        // Tender has submissions -- API archives instead of deleting
-        toast.warning('Tender has submissions and was archived instead');
-        setDeleteTarget(null);
-        // Refresh the list so the card disappears from active view
-        void fetchTenders(showArchived);
-        return;
-      }
+      const body = await res.json().catch(() => null) as {
+        success?: boolean;
+        error?: string;
+        archived?: boolean;
+        deleted?: boolean;
+        message?: string;
+      } | null;
 
       if (!res.ok) {
-        const body = await res.json().catch(() => null) as { error?: string } | null;
         toast.error(body?.error ?? 'Failed to delete tender');
+        setIsDeleting(false);
         return;
       }
 
-      toast.success('Tender deleted successfully');
+      if (body?.archived) {
+        toast.warning(body.message ?? 'Tender was archived (has submissions)');
+      } else {
+        toast.success('Tender deleted permanently');
+      }
+
       setDeleteTarget(null);
-      // Remove the card from the local list to avoid a full refetch flicker
+      // Remove from local list immediately
       setTenders((prev) => prev.filter((t) => t.id !== deleteTarget.id));
     } catch {
       toast.error('Network error while deleting tender');
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteTarget, fetchTenders, showArchived]);
+  }, [deleteTarget]);
 
   const handleDeleteCancel = useCallback(() => {
     if (!isDeleting) setDeleteTarget(null);
@@ -268,11 +272,11 @@ export default function TendersListPage() {
               <div key={tender.id} className="group/card relative">
                 <TenderCard tender={tender} />
 
-                {/* Delete icon -- visible only on card hover */}
+                {/* Delete icon -- always visible */}
                 <button
                   type="button"
                   onClick={(e) => handleDeleteClick(e, tender)}
-                  className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-md bg-stone-900/80 text-stone-500 opacity-0 backdrop-blur-sm transition-all group-hover/card:opacity-100 hover:bg-red-900/50 hover:text-red-400 border border-transparent hover:border-red-700/50"
+                  className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-md bg-stone-800/90 text-stone-500 backdrop-blur-sm transition-all hover:bg-red-900/60 hover:text-red-400 border border-stone-700/50 hover:border-red-700/50"
                   aria-label={`Delete tender ${tender.package_name}`}
                 >
                   <svg

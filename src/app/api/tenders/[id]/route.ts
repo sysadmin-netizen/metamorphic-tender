@@ -166,8 +166,8 @@ export async function DELETE(
   const { id } = await params;
   const supabase = createServiceClient();
 
-  // Soft delete (EC-20): Check submission count first
-  const { count, error: countError } = await supabase
+  // EC-20: Check submission count first
+  const { count: subCount, error: countError } = await supabase
     .from('submissions')
     .select('id', { count: 'exact', head: true })
     .eq('tender_config_id', id);
@@ -179,32 +179,61 @@ export async function DELETE(
     );
   }
 
-  if (count !== null && count > 0) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: `Cannot delete tender with ${count} submission(s). Archive it instead.`,
-        code: 'EC-20',
-        submission_count: count,
-      },
-      { status: 409 }
-    );
+  const hasSubmissions = subCount !== null && subCount > 0;
+
+  if (hasSubmissions) {
+    // Has submissions: archive instead of delete (EC-20)
+    const { data, error } = await supabase
+      .from('tender_configs')
+      .update({ is_archived: true, is_active: false })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      return NextResponse.json(
+        { success: false, error: 'Tender not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data,
+      archived: true,
+      message: `Tender archived (has ${subCount} submission(s))`,
+    });
   }
 
-  // No submissions: soft-delete by setting is_archived = true
-  const { data, error } = await supabase
+  // No submissions: check for invites and clean up
+  // Delete vendor_tenders (invites) first to avoid FK constraint
+  await supabase
+    .from('vendor_tenders')
+    .delete()
+    .eq('tender_config_id', id);
+
+  // Now delete the tender config
+  const { error: deleteError } = await supabase
     .from('tender_configs')
-    .update({ is_archived: true })
-    .eq('id', id)
-    .select()
-    .single();
+    .delete()
+    .eq('id', id);
 
-  if (error || !data) {
-    return NextResponse.json(
-      { success: false, error: 'Tender config not found' },
-      { status: 404 }
-    );
+  if (deleteError) {
+    // If real delete fails (FK or other), fall back to archive
+    const { data: archived } = await supabase
+      .from('tender_configs')
+      .update({ is_archived: true, is_active: false })
+      .eq('id', id)
+      .select()
+      .single();
+
+    return NextResponse.json({
+      success: true,
+      data: archived,
+      archived: true,
+      message: 'Tender archived (could not fully delete)',
+    });
   }
 
-  return NextResponse.json({ success: true, data });
+  return NextResponse.json({ success: true, deleted: true });
 }
