@@ -126,18 +126,23 @@ export async function PATCH(
 
   const supabase = createServiceClient();
 
-  // OPTIMISTIC CONCURRENCY (EC-23):
-  // UPDATE ... WHERE id = $1 AND updated_at = $original
-  const { data, error } = await supabase
+  // For archive/restore operations, skip optimistic concurrency (no conflict risk)
+  const isArchiveToggle = updateFields.is_archived !== undefined
+    && Object.keys(updatePayload).every(k => ['is_archived', 'is_active', 'archived_at'].includes(k));
+
+  let query = supabase
     .from('tender_configs')
     .update(updatePayload)
-    .eq('id', id)
-    .eq('updated_at', originalUpdatedAt)
-    .select()
-    .single();
+    .eq('id', id);
+
+  // OPTIMISTIC CONCURRENCY (EC-23) — only for content edits, not archive toggles
+  if (!isArchiveToggle) {
+    query = query.eq('updated_at', originalUpdatedAt);
+  }
+
+  const { data, error } = await query.select().single();
 
   if (error) {
-    // If no rows matched, it means updated_at changed (another user modified it)
     if (error.code === 'PGRST116') {
       return NextResponse.json(
         { success: false, error: 'Modified by another user. Please refresh and try again.', code: 'EC-23' },
@@ -152,8 +157,8 @@ export async function PATCH(
 
   if (!data) {
     return NextResponse.json(
-      { success: false, error: 'Modified by another user. Please refresh and try again.', code: 'EC-23' },
-      { status: 409 }
+      { success: false, error: 'Tender not found' },
+      { status: 404 }
     );
   }
 
