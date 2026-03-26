@@ -158,6 +158,36 @@ export default function TendersListPage() {
     void fetchTenders(showArchived);
   }, [showArchived, fetchTenders]);
 
+  // ---- Restore handler ----
+
+  const handleRestore = useCallback(async (e: React.MouseEvent, tender: TenderCardData) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      const res = await fetch(`/api/tenders/${tender.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          updated_at: new Date().toISOString(),
+          is_archived: false,
+          is_active: true,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null) as { error?: string } | null;
+        toast.error(body?.error ?? 'Failed to restore tender');
+        return;
+      }
+
+      toast.success(`"${tender.package_name}" restored to Active`);
+      setTenders((prev) => prev.filter((t) => t.id !== tender.id));
+    } catch {
+      toast.error('Network error while restoring tender');
+    }
+  }, []);
+
   // ---- Delete handlers ----
 
   const handleDeleteClick = useCallback(
@@ -285,27 +315,35 @@ export default function TendersListPage() {
               <div key={tender.id} className="group/card relative">
                 <TenderCard tender={tender} />
 
-                {/* Delete icon -- always visible */}
-                <button
-                  type="button"
-                  onClick={(e) => handleDeleteClick(e, tender)}
-                  className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-md bg-stone-800/90 text-stone-500 backdrop-blur-sm transition-all hover:bg-red-900/60 hover:text-red-400 border border-stone-700/50 hover:border-red-700/50"
-                  aria-label={`Delete tender ${tender.package_name}`}
-                >
-                  <svg
-                    className="h-3.5 w-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
+                {/* Action buttons -- always visible */}
+                <div className="absolute right-2 top-2 z-10 flex items-center gap-1.5">
+                  {/* Restore button (archived view only) */}
+                  {showArchived && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleRestore(e, tender)}
+                      className="flex h-7 items-center gap-1 rounded-md bg-stone-800/90 px-2 text-xs font-medium text-stone-400 backdrop-blur-sm transition-all hover:bg-emerald-900/50 hover:text-emerald-400 border border-stone-700/50 hover:border-emerald-700/50"
+                      aria-label={`Restore tender ${tender.package_name}`}
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                      </svg>
+                      Restore
+                    </button>
+                  )}
+
+                  {/* Delete button */}
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteClick(e, tender)}
+                    className="flex h-7 w-7 items-center justify-center rounded-md bg-stone-800/90 text-stone-500 backdrop-blur-sm transition-all hover:bg-red-900/60 hover:text-red-400 border border-stone-700/50 hover:border-red-700/50"
+                    aria-label={`Delete tender ${tender.package_name}`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                    />
-                  </svg>
-                </button>
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -50,6 +50,7 @@ interface PatchTenderBody {
   boq_template?: TableUpdate<'tender_configs'>['boq_template'];
   closing_deadline?: string;
   is_active?: boolean;
+  is_archived?: boolean;
   commercial_terms?: TableUpdate<'tender_configs'>['commercial_terms'];
   location?: string | null;
   job_sequence?: string | null;
@@ -107,6 +108,13 @@ export async function PATCH(
   if (updateFields.boq_template !== undefined) updatePayload.boq_template = updateFields.boq_template;
   if (updateFields.closing_deadline !== undefined) updatePayload.closing_deadline = updateFields.closing_deadline;
   if (updateFields.is_active !== undefined) updatePayload.is_active = updateFields.is_active;
+  if (updateFields.is_archived !== undefined) {
+    updatePayload.is_archived = updateFields.is_archived;
+    // Clear archived_at when restoring from archive
+    if (!updateFields.is_archived) {
+      (updatePayload as Record<string, unknown>).archived_at = null;
+    }
+  }
   if (updateFields.commercial_terms !== undefined) updatePayload.commercial_terms = updateFields.commercial_terms;
   if (updateFields.location !== undefined) updatePayload.location = updateFields.location;
   if (updateFields.job_sequence !== undefined) updatePayload.job_sequence = updateFields.job_sequence;
