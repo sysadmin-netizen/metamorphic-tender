@@ -25,24 +25,58 @@ interface TenderListResponse {
 // Delete confirmation modal
 // ---------------------------------------------------------------------------
 
-interface DeleteModalProps {
+type ModalAction = 'delete-active' | 'delete-archived' | 'restore';
+
+interface ConfirmModalProps {
   tender: TenderCardData | null;
+  action: ModalAction;
   onClose: () => void;
   onConfirm: () => void;
-  isDeleting: boolean;
+  isLoading: boolean;
 }
 
-function DeleteConfirmModal({ tender, onClose, onConfirm, isDeleting }: DeleteModalProps) {
-  const cancelRef = useRef<HTMLButtonElement>(null);
+const MODAL_CONFIG: Record<ModalAction, {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  loadingLabel: string;
+  confirmClass: string;
+  spinnerClass: string;
+}> = {
+  'delete-active': {
+    title: 'Delete Tender?',
+    description: 'This tender will be moved to the Archive for 30 days. Tenders with submissions will be archived instead of deleted.',
+    confirmLabel: 'Move to Archive',
+    loadingLabel: 'Archiving...',
+    confirmClass: 'bg-red-900/50 text-red-300 border-red-700/50 hover:bg-red-800/60 hover:text-red-200',
+    spinnerClass: 'border-red-400/30 border-t-red-400',
+  },
+  'delete-archived': {
+    title: 'Permanently Delete?',
+    description: 'This tender will be permanently deleted. This action cannot be undone. All associated invites will also be removed.',
+    confirmLabel: 'Delete Permanently',
+    loadingLabel: 'Deleting...',
+    confirmClass: 'bg-red-900/50 text-red-300 border-red-700/50 hover:bg-red-800/60 hover:text-red-200',
+    spinnerClass: 'border-red-400/30 border-t-red-400',
+  },
+  restore: {
+    title: 'Restore Tender?',
+    description: 'This tender will be moved back to Active. The 30-day auto-delete countdown will be cancelled.',
+    confirmLabel: 'Restore to Active',
+    loadingLabel: 'Restoring...',
+    confirmClass: 'bg-emerald-900/50 text-emerald-300 border-emerald-700/50 hover:bg-emerald-800/60 hover:text-emerald-200',
+    spinnerClass: 'border-emerald-400/30 border-t-emerald-400',
+  },
+};
 
-  // Focus the cancel button when the modal opens
+function ConfirmModal({ tender, action, onClose, onConfirm, isLoading }: ConfirmModalProps) {
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const config = MODAL_CONFIG[action];
+
   useEffect(() => {
-    if (tender) {
-      cancelRef.current?.focus();
-    }
+    if (tender) cancelRef.current?.focus();
   }, [tender]);
 
-  // Close on Escape key
   useEffect(() => {
     if (!tender) return;
     function handleKeyDown(e: KeyboardEvent) {
@@ -59,42 +93,18 @@ function DeleteConfirmModal({ tender, onClose, onConfirm, isDeleting }: DeleteMo
       className="fixed inset-0 z-50 flex items-center justify-center transition-opacity duration-150"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="delete-modal-title"
     >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Modal card */}
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden="true" />
       <div className="relative z-10 w-full max-w-md rounded-lg border border-[#c9a84c]/40 bg-stone-900 p-6 shadow-xl animate-[fadeInScale_150ms_ease-out]">
-        {/* Title */}
-        <h2
-          id="delete-modal-title"
-          className="text-lg font-semibold text-stone-200"
-        >
-          Delete Tender?
-        </h2>
-
-        {/* Package name */}
-        <p className="mt-2 text-sm text-stone-400">
-          <span className="font-medium text-stone-300">{tender.package_name}</span>
-        </p>
-
-        {/* Warning text */}
-        <p className="mt-3 text-sm text-stone-400">
-          This action cannot be undone. Tenders with submissions will be archived instead.
-        </p>
-
-        {/* Actions */}
+        <h2 className="text-lg font-semibold text-stone-200">{config.title}</h2>
+        <p className="mt-2 text-sm font-medium text-stone-300">{tender.package_name}</p>
+        <p className="mt-3 text-sm text-stone-400">{config.description}</p>
         <div className="mt-6 flex items-center justify-end gap-3">
           <button
             ref={cancelRef}
             type="button"
             onClick={onClose}
-            disabled={isDeleting}
+            disabled={isLoading}
             className="rounded-md px-4 py-2 text-sm font-medium text-stone-400 hover:text-stone-200 transition-colors disabled:opacity-50"
           >
             Cancel
@@ -102,16 +112,16 @@ function DeleteConfirmModal({ tender, onClose, onConfirm, isDeleting }: DeleteMo
           <button
             type="button"
             onClick={onConfirm}
-            disabled={isDeleting}
-            className="inline-flex items-center gap-2 rounded-md bg-red-900/50 px-4 py-2 text-sm font-semibold text-red-300 border border-red-700/50 hover:bg-red-800/60 hover:text-red-200 transition-colors disabled:opacity-50"
+            disabled={isLoading}
+            className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold border transition-colors disabled:opacity-50 ${config.confirmClass}`}
           >
-            {isDeleting ? (
+            {isLoading ? (
               <>
-                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-400/30 border-t-red-400" />
-                Deleting...
+                <span className={`h-3.5 w-3.5 animate-spin rounded-full border-2 ${config.spinnerClass}`} />
+                {config.loadingLabel}
               </>
             ) : (
-              'Delete'
+              config.confirmLabel
             )}
           </button>
         </div>
@@ -128,8 +138,9 @@ export default function TendersListPage() {
   const [tenders, setTenders] = useState<TenderCardData[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [deleteTarget, setDeleteTarget] = useState<TenderCardData | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [modalTarget, setModalTarget] = useState<TenderCardData | null>(null);
+  const [modalAction, setModalAction] = useState<ModalAction>('delete-active');
+  const [isModalLoading, setIsModalLoading] = useState(false);
 
   const fetchTenders = useCallback(async (archived: boolean) => {
     setLoading(true);
@@ -158,89 +169,72 @@ export default function TendersListPage() {
     void fetchTenders(showArchived);
   }, [showArchived, fetchTenders]);
 
-  // ---- Restore handler ----
+  // ---- Open modal helpers ----
 
-  const handleRestore = useCallback(async (e: React.MouseEvent, tender: TenderCardData) => {
+  const openModal = useCallback((e: React.MouseEvent, tender: TenderCardData, action: ModalAction) => {
     e.preventDefault();
     e.stopPropagation();
-
-    try {
-      const res = await fetch(`/api/tenders/${tender.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          updated_at: new Date().toISOString(),
-          is_archived: false,
-          is_active: true,
-        }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => null) as { error?: string } | null;
-        toast.error(body?.error ?? 'Failed to restore tender');
-        return;
-      }
-
-      toast.success(`"${tender.package_name}" restored to Active`);
-      setTenders((prev) => prev.filter((t) => t.id !== tender.id));
-    } catch {
-      toast.error('Network error while restoring tender');
-    }
+    setModalTarget(tender);
+    setModalAction(action);
   }, []);
 
-  // ---- Delete handlers ----
+  const handleDeleteClick = useCallback((e: React.MouseEvent, tender: TenderCardData) => {
+    openModal(e, tender, showArchived ? 'delete-archived' : 'delete-active');
+  }, [openModal, showArchived]);
 
-  const handleDeleteClick = useCallback(
-    (e: React.MouseEvent, tender: TenderCardData) => {
-      e.preventDefault(); // prevent navigating via the parent <Link>
-      e.stopPropagation();
-      setDeleteTarget(tender);
-    },
-    [],
-  );
+  const handleRestoreClick = useCallback((e: React.MouseEvent, tender: TenderCardData) => {
+    openModal(e, tender, 'restore');
+  }, [openModal]);
 
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!deleteTarget) return;
-    setIsDeleting(true);
+  const handleModalClose = useCallback(() => {
+    if (!isModalLoading) setModalTarget(null);
+  }, [isModalLoading]);
+
+  // ---- Confirm handler (handles all actions) ----
+
+  const handleModalConfirm = useCallback(async () => {
+    if (!modalTarget) return;
+    setIsModalLoading(true);
 
     try {
-      const res = await fetch(`/api/tenders/${deleteTarget.id}`, {
-        method: 'DELETE',
-      });
-
-      const body = await res.json().catch(() => null) as {
-        success?: boolean;
-        error?: string;
-        archived?: boolean;
-        deleted?: boolean;
-        message?: string;
-      } | null;
-
-      if (!res.ok) {
-        toast.error(body?.error ?? 'Failed to delete tender');
-        setIsDeleting(false);
-        return;
-      }
-
-      if (body?.archived) {
-        toast.warning(body.message ?? 'Tender was archived (has submissions)');
+      if (modalAction === 'restore') {
+        const res = await fetch(`/api/tenders/${modalTarget.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ updated_at: new Date().toISOString(), is_archived: false, is_active: true }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => null) as { error?: string } | null;
+          toast.error(body?.error ?? 'Failed to restore tender');
+          setIsModalLoading(false);
+          return;
+        }
+        toast.success(`"${modalTarget.package_name}" restored to Active`);
       } else {
-        toast.success('Tender deleted permanently');
+        const res = await fetch(`/api/tenders/${modalTarget.id}`, { method: 'DELETE' });
+        const body = await res.json().catch(() => null) as {
+          success?: boolean; error?: string; archived?: boolean; message?: string;
+        } | null;
+        if (!res.ok) {
+          toast.error(body?.error ?? 'Failed to delete tender');
+          setIsModalLoading(false);
+          return;
+        }
+        if (body?.archived) {
+          toast.warning(body.message ?? 'Tender archived (has submissions)');
+        } else {
+          toast.success('Tender deleted permanently');
+        }
       }
 
-      setDeleteTarget(null);
-      // Remove from local list immediately
-      setTenders((prev) => prev.filter((t) => t.id !== deleteTarget.id));
+      setModalTarget(null);
+      setTenders((prev) => prev.filter((t) => t.id !== modalTarget.id));
     } catch {
-      toast.error('Network error while deleting tender');
+      toast.error('Network error');
     } finally {
-      setIsDeleting(false);
+      setIsModalLoading(false);
     }
-  }, [deleteTarget]);
-
-  const handleDeleteCancel = useCallback(() => {
-    if (!isDeleting) setDeleteTarget(null);
-  }, [isDeleting]);
+  }, [modalTarget, modalAction]);
 
   return (
     <>
@@ -321,7 +315,7 @@ export default function TendersListPage() {
                   {showArchived && (
                     <button
                       type="button"
-                      onClick={(e) => handleRestore(e, tender)}
+                      onClick={(e) => handleRestoreClick(e, tender)}
                       className="flex h-7 items-center gap-1 rounded-md bg-stone-800/90 px-2 text-xs font-medium text-stone-400 backdrop-blur-sm transition-all hover:bg-emerald-900/50 hover:text-emerald-400 border border-stone-700/50 hover:border-emerald-700/50"
                       aria-label={`Restore tender ${tender.package_name}`}
                     >
@@ -350,12 +344,13 @@ export default function TendersListPage() {
         )}
       </div>
 
-      {/* Delete confirmation modal */}
-      <DeleteConfirmModal
-        tender={deleteTarget}
-        onClose={handleDeleteCancel}
-        onConfirm={handleDeleteConfirm}
-        isDeleting={isDeleting}
+      {/* Confirmation modal (delete / restore) */}
+      <ConfirmModal
+        tender={modalTarget}
+        action={modalAction}
+        onClose={handleModalClose}
+        onConfirm={handleModalConfirm}
+        isLoading={isModalLoading}
       />
     </>
   );
