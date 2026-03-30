@@ -75,7 +75,7 @@ export default function VendorImportPage() {
       <div>
         <h1 className="text-2xl font-bold text-stone-100">Import Vendors</h1>
         <p className="mt-1 text-sm text-stone-500">
-          Paste CSV data or upload a file to bulk-import vendors
+          Paste CSV data or upload a CSV/Excel file to bulk-import vendors
         </p>
       </div>
 

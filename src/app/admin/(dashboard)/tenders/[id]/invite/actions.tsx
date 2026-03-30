@@ -14,6 +14,7 @@ interface InviteActionsProps {
 interface ApiResponse {
   success: boolean;
   error?: string;
+  deadline_extended?: boolean;
 }
 
 interface QuickInviteResponse {
@@ -87,11 +88,13 @@ export function ReissueButton({ vendorTenderId }: ReissueButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [deadlineExtended, setDeadlineExtended] = useState(false);
 
   const handleReissue = useCallback(async () => {
     setLoading(true);
     setError(null);
     setSuccess(false);
+    setDeadlineExtended(false);
     try {
       const res = await fetch('/api/invites/reissue', {
         method: 'POST',
@@ -105,7 +108,13 @@ export function ReissueButton({ vendorTenderId }: ReissueButtonProps) {
         return;
       }
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      if (json.deadline_extended) {
+        setDeadlineExtended(true);
+      }
+      setTimeout(() => {
+        setSuccess(false);
+        setDeadlineExtended(false);
+      }, 5000);
       router.refresh();
     } catch {
       setError('Network error. Please try again.');
@@ -128,6 +137,9 @@ export function ReissueButton({ vendorTenderId }: ReissueButtonProps) {
         {loading ? 'Re-issuing...' : success ? 'Done!' : 'Re-issue'}
       </button>
       {error && <span className="text-xs text-red-400">{error}</span>}
+      {deadlineExtended && (
+        <span className="text-xs text-amber-400">Deadline extended +24h</span>
+      )}
     </div>
   );
 }

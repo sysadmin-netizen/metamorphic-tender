@@ -66,6 +66,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
+  // Check if the tender's closing deadline has passed — if so, extend it to tomorrow
+  let deadlineExtended = false;
+  const { data: tender, error: tenderError } = await supabase
+    .from('tender_configs')
+    .select('closing_deadline')
+    .eq('id', vt.tender_config_id)
+    .single();
+
+  if (!tenderError && tender) {
+    const closingDeadline = new Date(tender.closing_deadline);
+    const now = new Date();
+    if (closingDeadline <= now) {
+      // Extend deadline to tomorrow same time (24h from now)
+      const newDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const { error: updateError } = await supabase
+        .from('tender_configs')
+        .update({ closing_deadline: newDeadline.toISOString() })
+        .eq('id', vt.tender_config_id);
+
+      if (updateError) {
+        return NextResponse.json(
+          { success: false, error: `Failed to extend deadline: ${updateError.message}` },
+          { status: 500 }
+        );
+      }
+      deadlineExtended = true;
+    }
+  }
+
   const { data, error } = await supabase.rpc('reissue_vendor_invite', {
     p_vendor_id: vt.vendor_id,
     p_tender_id: vt.tender_config_id,
@@ -83,5 +112,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   return NextResponse.json({
     success: true,
     token: newToken,
+    deadline_extended: deadlineExtended,
   });
 }

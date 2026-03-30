@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import * as XLSX from 'xlsx';
 
 /* ---------------------------------------------------------------
    Types
@@ -35,6 +36,22 @@ function parseCSV(raw: string): string[][] {
 }
 
 /* ---------------------------------------------------------------
+   Excel parsing helper
+   --------------------------------------------------------------- */
+
+function parseExcel(data: ArrayBuffer): string[][] {
+  const workbook = XLSX.read(data, { type: 'array' });
+  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows: string[][] = XLSX.utils.sheet_to_json(firstSheet, {
+    header: 1,
+    defval: '',
+    raw: false,
+  });
+  // Filter out completely empty rows
+  return rows.filter((row) => row.some((cell) => String(cell).trim() !== ''));
+}
+
+/* ---------------------------------------------------------------
    Component
    --------------------------------------------------------------- */
 
@@ -47,22 +64,23 @@ export function CsvImporter({
   const [headers, setHeaders] = useState<string[]>([]);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [previewing, setPreviewing] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const csvFileRef = useRef<HTMLInputElement>(null);
+  const xlsxFileRef = useRef<HTMLInputElement>(null);
 
-  const processCSV = useCallback(
-    (text: string) => {
-      const allRows = parseCSV(text);
+  const processRows = useCallback(
+    (allRows: string[][]) => {
       if (allRows.length < 2) {
         setHeaders([]);
         setParsedRows([]);
         return;
       }
       const [headerRow, ...dataRows] = allRows;
-      setHeaders(headerRow);
+      setHeaders(headerRow.map((h) => String(h).trim()));
       setParsedRows(
         dataRows.map((values) => ({
-          values,
-          isDuplicate: existingKeys.has(values[keyColumnIndex] ?? ''),
+          values: values.map((v) => String(v).trim()),
+          isDuplicate: existingKeys.has(String(values[keyColumnIndex] ?? '').trim()),
         })),
       );
       setPreviewing(true);
@@ -70,10 +88,18 @@ export function CsvImporter({
     [existingKeys, keyColumnIndex],
   );
 
+  const processCSV = useCallback(
+    (text: string) => {
+      processRows(parseCSV(text));
+    },
+    [processRows],
+  );
+
   const handleTextChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const text = e.target.value;
       setRawText(text);
+      setUploadedFileName(null);
       if (text.trim().length > 0) {
         processCSV(text);
       } else {
@@ -85,10 +111,11 @@ export function CsvImporter({
     [processCSV],
   );
 
-  const handleFileUpload = useCallback(
+  const handleCsvUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      setUploadedFileName(file.name);
       const reader = new FileReader();
       reader.onload = (event) => {
         const text = event.target?.result;
@@ -98,8 +125,33 @@ export function CsvImporter({
         }
       };
       reader.readAsText(file);
+      e.target.value = '';
     },
     [processCSV],
+  );
+
+  const handleExcelUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setUploadedFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const data = event.target?.result;
+        if (data instanceof ArrayBuffer) {
+          const rows = parseExcel(data);
+          if (rows.length >= 2) {
+            // Show the parsed data as CSV text in the textarea for transparency
+            const csvText = rows.map((row) => row.join(',')).join('\n');
+            setRawText(csvText);
+          }
+          processRows(rows);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+      e.target.value = '';
+    },
+    [processRows],
   );
 
   const handleImport = useCallback(() => {
@@ -129,21 +181,41 @@ export function CsvImporter({
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => csvFileRef.current?.click()}
             className="inline-flex items-center gap-2 rounded-md border border-stone-700 bg-stone-800 px-3 py-2 text-sm font-medium text-stone-300 hover:bg-stone-700 transition-colors"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
             </svg>
-            Upload CSV File
+            Upload CSV
           </button>
           <input
-            ref={fileInputRef}
+            ref={csvFileRef}
             type="file"
             accept=".csv,text/csv"
-            onChange={handleFileUpload}
+            onChange={handleCsvUpload}
             className="hidden"
           />
+          <button
+            type="button"
+            onClick={() => xlsxFileRef.current?.click()}
+            className="inline-flex items-center gap-2 rounded-md border border-stone-700 bg-emerald-900/50 px-3 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-800/50 transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M12 12h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125M21.375 12c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125M12 17.25v-5.25" />
+            </svg>
+            Upload Excel
+          </button>
+          <input
+            ref={xlsxFileRef}
+            type="file"
+            accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+            onChange={handleExcelUpload}
+            className="hidden"
+          />
+          {uploadedFileName && (
+            <span className="text-xs text-stone-500 truncate max-w-[200px]">{uploadedFileName}</span>
+          )}
         </div>
       </div>
 

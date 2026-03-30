@@ -58,13 +58,44 @@ function parseCsv(csvText: string): CsvVendorRow[] {
 }
 
 interface ImportRequestBody {
-  csv: string;
+  csv?: string;
+  rows?: string[][];
 }
 
 function isImportRequestBody(body: unknown): body is ImportRequestBody {
   if (typeof body !== 'object' || body === null) return false;
   const record = body as Record<string, unknown>;
-  return typeof record.csv === 'string';
+  return typeof record.csv === 'string' || Array.isArray(record.rows);
+}
+
+function rowsFromBody(body: ImportRequestBody): CsvVendorRow[] {
+  // If raw CSV string is provided, parse it
+  if (body.csv) {
+    return parseCsv(body.csv);
+  }
+  // If pre-parsed rows (string[][]) are provided, map using first row as headers
+  if (body.rows && body.rows.length >= 1) {
+    const dataRows = body.rows;
+    const result: CsvVendorRow[] = [];
+    for (const values of dataRows) {
+      const company_name = (values[0] ?? '').trim();
+      const email = (values[3] ?? '').trim();
+      if (company_name && email) {
+        result.push({
+          company_name,
+          trade_licence_number: (values[1] ?? '').trim(),
+          contact_name: (values[2] ?? '').trim(),
+          email,
+          whatsapp: (values[4] ?? '').trim(),
+          tier: (values[5] ?? '').trim() || undefined,
+          is_dda_approved: (values[6] ?? '').trim() || undefined,
+          metaforge_confirmed: (values[7] ?? '').trim() || undefined,
+        });
+      }
+    }
+    return result;
+  }
+  return [];
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -87,15 +118,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (!isImportRequestBody(body)) {
     return NextResponse.json(
-      { success: false, error: 'Missing required field: csv' },
+      { success: false, error: 'Missing required field: csv or rows' },
       { status: 400 }
     );
   }
 
-  const rows = parseCsv(body.csv);
+  const rows = rowsFromBody(body);
   if (rows.length === 0) {
     return NextResponse.json(
-      { success: false, error: 'No valid rows found in CSV (EC-13)' },
+      { success: false, error: 'No valid rows found (EC-13)' },
       { status: 400 }
     );
   }

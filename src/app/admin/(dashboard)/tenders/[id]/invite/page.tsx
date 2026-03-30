@@ -104,8 +104,8 @@ export default async function TenderInvitePage({
             )}
             {inviteRows.map((inv, idx) => {
               const statusStyle = STATUS_COLORS[inv.status];
-              // EC-25: Re-issue only for expired or opened (NOT submitted)
-              const canReissue = inv.status === 'expired' || inv.status === 'opened';
+              // EC-25: Re-issue for any non-submitted status (invited, opened, expired)
+              const canReissue = inv.status !== 'submitted';
 
               return (
                 <tr
