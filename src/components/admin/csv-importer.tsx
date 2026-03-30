@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import * as XLSX from 'xlsx';
 
 /* ---------------------------------------------------------------
    Types
@@ -36,10 +35,11 @@ function parseCSV(raw: string): string[][] {
 }
 
 /* ---------------------------------------------------------------
-   Excel parsing helper
+   Excel parsing helper (dynamic import to avoid SSR/bundling issues)
    --------------------------------------------------------------- */
 
-function parseExcel(data: ArrayBuffer): string[][] {
+async function parseExcel(data: ArrayBuffer): Promise<string[][]> {
+  const XLSX = await import('xlsx');
   const workbook = XLSX.read(data, { type: 'array' });
   const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows: string[][] = XLSX.utils.sheet_to_json(firstSheet, {
@@ -136,10 +136,10 @@ export function CsvImporter({
       if (!file) return;
       setUploadedFileName(file.name);
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const data = event.target?.result;
         if (data instanceof ArrayBuffer) {
-          const rows = parseExcel(data);
+          const rows = await parseExcel(data);
           if (rows.length >= 2) {
             // Show the parsed data as CSV text in the textarea for transparency
             const csvText = rows.map((row) => row.join(',')).join('\n');
