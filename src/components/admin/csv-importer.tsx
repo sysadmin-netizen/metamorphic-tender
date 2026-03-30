@@ -35,20 +35,15 @@ function parseCSV(raw: string): string[][] {
 }
 
 /* ---------------------------------------------------------------
-   Excel parsing helper (dynamic import to avoid SSR/bundling issues)
+   Excel parsing helper
    --------------------------------------------------------------- */
 
-async function parseExcel(data: ArrayBuffer): Promise<string[][]> {
-  const XLSX = await import('xlsx');
-  const workbook = XLSX.read(data, { type: 'array' });
-  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows: string[][] = XLSX.utils.sheet_to_json(firstSheet, {
-    header: 1,
-    defval: '',
-    raw: false,
-  });
-  // Filter out completely empty rows
-  return rows.filter((row) => row.some((cell) => String(cell).trim() !== ''));
+async function parseExcel(file: File): Promise<string[][]> {
+  const { default: readXlsxFile } = await import('read-excel-file/browser');
+  const sheets = await readXlsxFile(file);
+  const rows = sheets[0]?.data ?? [];
+  // Convert all cell values to strings
+  return rows.map((row) => row.map((cell) => (cell == null ? '' : String(cell))));
 }
 
 /* ---------------------------------------------------------------
@@ -131,24 +126,23 @@ export function CsvImporter({
   );
 
   const handleExcelUpload = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
       setUploadedFileName(file.name);
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const data = event.target?.result;
-        if (data instanceof ArrayBuffer) {
-          const rows = await parseExcel(data);
-          if (rows.length >= 2) {
-            // Show the parsed data as CSV text in the textarea for transparency
-            const csvText = rows.map((row) => row.join(',')).join('\n');
-            setRawText(csvText);
-          }
-          processRows(rows);
+      try {
+        const rows = await parseExcel(file);
+        if (rows.length >= 2) {
+          const csvText = rows.map((row) => row.join(',')).join('\n');
+          setRawText(csvText);
         }
-      };
-      reader.readAsArrayBuffer(file);
+        processRows(rows);
+      } catch {
+        // If parsing fails, clear state
+        setPreviewing(false);
+        setHeaders([]);
+        setParsedRows([]);
+      }
       e.target.value = '';
     },
     [processRows],
